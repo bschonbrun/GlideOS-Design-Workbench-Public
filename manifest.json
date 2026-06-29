@@ -1,0 +1,185 @@
+{
+  "version": "2.0.0",
+  "updated_at": "2026-06-28",
+  "description": "CarboNet Design Workbench — scaffold manifest",
+  "files": [
+    {
+      "path": "AGENTS.md",
+      "dest": "AGENTS.md",
+      "description": "Permanent agent behaviour rules (append-only)"
+    },
+    {
+      "path": "PROJECT_NOTES.md",
+      "dest": "PROJECT_NOTES.md",
+      "description": "Project memory, architecture, build history"
+    },
+    {
+      "path": "PREFERENCES.md",
+      "dest": "PREFERENCES.md",
+      "description": "Agent communication preferences"
+    },
+    {
+      "path": "github/manifest.json",
+      "dest": "github/manifest.json",
+      "description": "Scaffold manifest — versioned list of all installable files"
+    },
+    {
+      "path": "github/workbench-install.md",
+      "dest": "github/workbench-install.md",
+      "description": "Bootstrap install instructions"
+    }
+  ],
+  "app_files": [
+    {
+      "path": "package.json",
+      "dest": "package.json",
+      "description": "Shared npm dependencies"
+    },
+    {
+      "path": "apps/design-workbench/source-bundle.ts",
+      "dest": "apps/design-workbench/source-bundle.ts",
+      "description": "Source bundle part 1 — small/medium design-workbench files (auto-generated)"
+    },
+    {
+      "path": "apps/design-workbench/source-bundle-2.ts",
+      "dest": "apps/design-workbench/source-bundle-2.ts",
+      "description": "Source bundle part 2 — server.ts + scaffold files (auto-generated)"
+    },
+    {
+      "path": "apps/design-workbench/source-bundle-3.ts",
+      "dest": "apps/design-workbench/source-bundle-3.ts",
+      "description": "Source bundle part 3 — LayoutCanvas.tsx (auto-generated)"
+    },
+    {
+      "path": "apps/design-workbench/server.ts",
+      "dest": "apps/design-workbench/server.ts",
+      "description": "Workbench Hono API server"
+    },
+    {
+      "path": "apps/design-workbench/auth.d.ts",
+      "dest": "apps/design-workbench/auth.d.ts",
+      "description": "Auth type declarations"
+    },
+    {
+      "path": "apps/design-workbench/client/App.tsx",
+      "dest": "apps/design-workbench/client/App.tsx",
+      "description": "Workbench root React component"
+    },
+    {
+      "path": "apps/design-workbench/client/pages/LayoutCanvas.tsx",
+      "dest": "apps/design-workbench/client/pages/LayoutCanvas.tsx",
+      "description": "Main canvas — all panel logic"
+    },
+    {
+      "path": "apps/design-workbench/client/pages/BlocksPanel.tsx",
+      "dest": "apps/design-workbench/client/pages/BlocksPanel.tsx",
+      "description": "Blocks panel — DB-backed block catalog"
+    },
+    {
+      "path": "apps/design-workbench/client/pages/CommandsPanel.tsx",
+      "dest": "apps/design-workbench/client/pages/CommandsPanel.tsx",
+      "description": "Commands panel — slash command list and editor"
+    },
+    {
+      "path": "apps/design-workbench/client/pages/SetupModal.tsx",
+      "dest": "apps/design-workbench/client/pages/SetupModal.tsx",
+      "description": "Scaffold version-drift banner"
+    },
+    {
+      "path": "apps/design-workbench/client/pages/WorkflowCanvas.tsx",
+      "dest": "apps/design-workbench/client/pages/WorkflowCanvas.tsx",
+      "description": "Workflow canvas — SVG node graph"
+    },
+    {
+      "path": "apps/design-workbench/client/pages/WorkflowNodeTypes.tsx",
+      "dest": "apps/design-workbench/client/pages/WorkflowNodeTypes.tsx",
+      "description": "Workflow node type definitions"
+    },
+    {
+      "path": "apps/design-workbench/client/pages/WorkflowEdgeTypes.tsx",
+      "dest": "apps/design-workbench/client/pages/WorkflowEdgeTypes.tsx",
+      "description": "Workflow edge type definitions"
+    },
+    {
+      "path": "apps/design-workbench/client/pages/ComponentBrowser.tsx",
+      "dest": "apps/design-workbench/client/pages/ComponentBrowser.tsx",
+      "description": "Component browser panel"
+    },
+    {
+      "path": "apps/design-workbench/client/pages/ThemeBuilder.tsx",
+      "dest": "apps/design-workbench/client/pages/ThemeBuilder.tsx",
+      "description": "Theme builder panel"
+    },
+    {
+      "path": "apps/design-workbench/client/components/Button.tsx",
+      "dest": "apps/design-workbench/client/components/Button.tsx"
+    },
+    {
+      "path": "apps/design-workbench/client/components/Dialog.tsx",
+      "dest": "apps/design-workbench/client/components/Dialog.tsx"
+    },
+    {
+      "path": "apps/design-workbench/client/components/Input.tsx",
+      "dest": "apps/design-workbench/client/components/Input.tsx"
+    },
+    {
+      "path": "apps/design-workbench/client/components/Label.tsx",
+      "dest": "apps/design-workbench/client/components/Label.tsx"
+    },
+    {
+      "path": "apps/design-workbench/client/components/Select.tsx",
+      "dest": "apps/design-workbench/client/components/Select.tsx"
+    },
+    {
+      "path": "apps/design-workbench/client/components/Tabs.tsx",
+      "dest": "apps/design-workbench/client/components/Tabs.tsx"
+    }
+  ],
+  "changelog": [
+    {
+      "version": "2.0.0",
+      "date": "2026-06-28",
+      "summary": "Install system. Shareable /install URL served by the Workbench worker. Email-gated scaffold proxy (/api/scaffold/*) — approved emails get files, others get a request queued. Invite codes (single/multi-use, expiry, auto-approve on redemption). Super admin system (SUPER_ADMIN_EMAILS secret, separate ⚡ Super Admin tab). Admin → Invites tab: send invites with email + code, approve pending requests, manage active codes. Email notifications via Resend (workbench@carbonet.app). Install log table tracks per-project installs for future licensing. workbench-install.md updated to 10-step flow including preview page copy (Step 7)."
+    },
+    {
+      "version": "1.9.0",
+      "date": "2026-06-17",
+      "summary": "Generic blank-slate install. No CarboNet app bundled. Canvas preview now iframes the connected app URL (set in Settings → Connections). ConnectedAppSection added to Connections tab. GET/PUT /app-api/connected-app routes added. Manifest trimmed to Workbench-only files."
+    },
+    {
+      "version": "1.8.7",
+      "date": "2026-06-16",
+      "summary": "WorkflowButton on EquipmentList. Revert smoke-tested. Workflow templates: design_workflow_templates table, 6 built-in templates, CRUD routes, Templates panel in workflow sidebar."
+    },
+    {
+      "version": "1.8.6",
+      "date": "2026-06-15",
+      "summary": "Phase 3: Workflow AI routes fixed. Per-workflow settings drawer. Context freshness badge. Auto-scan on panel open. Route ordering lesson documented."
+    },
+    {
+      "version": "1.8.5",
+      "date": "2026-06-15",
+      "summary": "Edits panel merged Queue + History. Rail reordered. Turn counter atomic CTE. Agent action auto-dispatch bug fixed."
+    },
+    {
+      "version": "1.8.4",
+      "date": "2026-06-15",
+      "summary": "AGENTS.md turn counter + build queue check merged into one mandatory atomic db_execute per turn."
+    },
+    {
+      "version": "1.8.3",
+      "date": "2026-06-15",
+      "summary": "Workflow panel two-pane redesign. Phase 2 AI context layer complete. Suggestion engine scaffolded."
+    },
+    {
+      "version": "1.8.2",
+      "date": "2026-06-14",
+      "summary": "Source bundle architecture. Admin panel git history tab."
+    },
+    {
+      "version": "1.8.0",
+      "date": "2026-06-14",
+      "summary": "Initial GitHub release."
+    }
+  ]
+}
