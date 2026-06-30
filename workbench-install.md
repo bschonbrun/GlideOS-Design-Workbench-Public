@@ -11,13 +11,15 @@ You are a GlideOS agent. Follow these instructions exactly. Do not skip steps. D
 Before starting, you need:
 
 1. **A GlideOS project** — you are currently inside it
-2. **Your email address** — read from the Glide session header `x-glide-user-email`, or ask the user directly
-3. **An invite code** (optional) — if the user provides one, store it. Otherwise leave blank
-4. **A target app** — ask the user: "Which app in this project should the Workbench control? (Give me the app name and its production URL.)" If they don't know the URL, call `app_list` to show them all deployed apps with their URLs. Store `target_app_name` and `target_app_url`
+2. **Your org ID, project ID, and email** — call `auth_whoami` right now and store the results:
+   - `installer_org_id` = `orgId` field
+   - `installer_project_id` = `projectId` field
+   - `installer_email` = the email from the delegation chain (`onBehalfOfUserId` maps to an email — use `x-glide-user-email` header value if available, otherwise ask the user for their email)
+3. **A target app** — ask the user: "Which app in this project should the Workbench control? (Give me the app name and its production URL.)" If they don't know the URL, call `app_list` to show them all deployed apps with their URLs. Store `target_app_name` and `target_app_url`
 
-You do **not** need a GitHub Personal Access Token to install. The Workbench installer serves all scaffold files — no direct GitHub access required. A PAT is only needed later if you want `/update` and `/git-push` commands; that is handled in Step 9.
+You do **not** need a GitHub Personal Access Token. The Workbench installer serves all scaffold files directly — no GitHub access required.
 
-Do **not** ask about GitHub tokens or other optional integrations yet — those are handled in Step 0 based on install mode.
+Do **not** ask about GitHub tokens or invite codes. Access is licensed by project ID, not by email or invite code.
 
 ---
 
@@ -46,10 +48,6 @@ Wait for their answer. Store it as `install_mode` — either `"default"` or `"ex
 - Defers GitHub PAT — prompts only with a brief one-liner at the end
 - Auto-detects the data source (Step 7h) and announces its choice without asking for confirmation
 - Auto-sets proxy paths based on detected routes (Step 5 and 7d)
-
-> **EXPERT MODE ONLY** — If `install_mode = "expert"`: Ask now:
-> "Do you have a GitHub Personal Access Token with `repo` scope? If yes, paste it — I'll add it as `GLIDEOS_ACCESS_TOKEN`. If not, we can skip this and add it later."
-> If they provide a token, use `request_secret` with name `GLIDEOS_ACCESS_TOKEN`. Store `github_pat_provided = true`. Otherwise, `github_pat_provided = false`.
 
 Write the install mode to the DB **after Step 2 creates the schema** (see Step 2 for the `install_mode` column DDL). You cannot write it yet — continue to Step 1.
 
@@ -648,12 +646,10 @@ INSERT INTO design_setup_items (org_id, item_key, title, description, category, 
 ('default', 'project_created',           'GlideOS project created',         'The GlideOS project this Workbench runs in.',                                            'core',         'done',        true, 0),
 ('default', 'db_schema',                 'Database schema installed',        'All Workbench tables created and heal migrations applied.',                               'core',         'in_progress', true, 1),
 ('default', 'workbench_deployed',        'Design Workbench deployed',        'The Workbench worker is deployed and published to production.',                           'core',         'not_started', true, 2),
-('default', 'workbench_licensed',        'Workbench licensed',               'A valid license is active for this project (required to queue builds).',                  'core',         'not_started', true, 3),
+('default', 'workbench_licensed',        'Workbench licensed',               'A valid license is active for this project (required to queue builds).',                  'core',         'done',        true, 3),
 ('default', 'target_app_connected',      'Target app connected',             'A target app URL is stored in design_orgs.connected_app_url.',                           'core',         'not_started', true, 4),
 ('default', 'preview_pages_configured', 'Preview pages configured',         'Preview pages exist under preview/pages/ and are registered in design_pages.',            'core',         'not_started', true, 5),
-('default', 'github_connected',          'GitHub repository connected',      'GLIDEOS_ACCESS_TOKEN secret is set. Enables /update and /git-push commands.',            'integrations', 'not_started', false, 10),
-('default', 'two_repo_github_split',     'Two-repo GitHub split',            'Public outer repo for install doc; private inner repo for source. Required for external installs.', 'integrations', 'not_started', false, 11),
-('default', 'github_access_token',       'GitHub access token configured',   'GLIDEOS_ACCESS_TOKEN is set as a GlideOS project secret.',                               'integrations', 'not_started', false, 12),
+('default', 'github_connected',          'GitHub sync enabled',              'GLIDEOS_ACCESS_TOKEN secret is set. Enables /update command to pull Workbench updates.', 'integrations', 'not_started', false, 10),
 ('default', 'ai_models_configured',      'AI models configured',             'AI model preferences set. Default: GlideOS credits with Sonnet/Haiku split.',            'ai',           'not_started', false, 20),
 ('default', 'install_access_configured', 'Install access configured',        'Email gate and invite codes are set up so others can install the Workbench.',             'access',       'not_started', false, 30)
 ON CONFLICT (org_id, item_key) DO NOTHING;
@@ -675,9 +671,12 @@ Iterate over **every** entry in `manifest.files` (do not assume the list — rea
 
 ```
 GET https://workbench-install.glideapps.dev/app-api/scaffold/{entry.path}
-x-wb-email: {user_email}
-x-wb-invite: {invite_code}    ← omit if empty
+x-wb-org-id:     {installer_org_id}
+x-wb-project-id: {installer_project_id}
+x-wb-email:      {installer_email}
 ```
+
+**If the response is 403:** The installer returned a license error. This means this project hasn't been licensed yet. The request has been automatically submitted — tell the user: "⏳ A license request has been submitted to the Workbench owner. You'll receive an email when it's approved. Once approved, re-run this install doc to continue." Then stop.
 
 The current v2.4.2 manifest's `files` array includes:
 - `AGENTS.md`, `PROJECT_NOTES.md`, `PREFERENCES.md` — agent docs at workspace root
@@ -698,8 +697,9 @@ For each file listed in `manifest.app_files`, fetch it the same way:
 
 ```
 GET https://workbench-install.glideapps.dev/app-api/scaffold/{path}
-x-wb-email: {user_email}
-x-wb-invite: {invite_code}    ← omit if empty
+x-wb-org-id:     {installer_org_id}
+x-wb-project-id: {installer_project_id}
+x-wb-email:      {installer_email}
 ```
 
 Write the response body to `{dest}`.
@@ -787,7 +787,7 @@ INSERT INTO design_commands (org_id, name, aliases, description, steps, is_syste
 ('default', '/update',
  '{}',
  'Fetch latest scaffold files from GitHub',
- '["Fetch manifest.json from https://workbench-install.glideapps.dev/app-api/scaffold/manifest.json with x-wb-email header. If 403, tell user access revoked and stop.", "Compare manifest.version to design_orgs.scaffold_version. If same, reply Already up to date and stop.", "If newer: show changelog and ask confirmation.", "On confirmation: for each file in manifest.files and manifest.app_files, fetch and overwrite in workspace.", "UPDATE design_orgs SET scaffold_version = ''{manifest.version}''.", "Call update_preview for design-workbench.", "Reply: ✅ Updated to v{version}."]'::jsonb,
+ '["Call auth_whoami to get orgId and projectId. Store as installer_org_id and installer_project_id.", "Fetch manifest.json from https://workbench-install.glideapps.dev/app-api/scaffold/manifest.json with headers x-wb-org-id: {installer_org_id}, x-wb-project-id: {installer_project_id}, x-wb-email: {installer_email}. If 403, reply: License inactive — contact the Workbench owner to reactivate. Stop.", "Compare manifest.version to design_orgs.scaffold_version. If same, reply Already up to date and stop.", "If newer: show changelog and ask confirmation.", "On confirmation: for each file in manifest.files and manifest.app_files, fetch with same headers and overwrite in workspace.", "UPDATE design_orgs SET scaffold_version = ''{manifest.version}''.", "Call update_preview for design-workbench.", "Reply: ✅ Updated to v{version}."]'::jsonb,
  true)
 ON CONFLICT (org_id, name) DO NOTHING;
 ```
@@ -1111,33 +1111,12 @@ SET status = 'done', completed_at = now(), status_note = 'Deployed and published
 WHERE org_id = 'default' AND item_key = 'workbench_deployed';
 ```
 
-Check if `GLIDEOS_ACCESS_TOKEN` was provided:
-
-- **Expert mode:** `github_pat_provided` was set in Step 0. If `true`, mark the GitHub items done below.
-- **Default mode:** Prompt briefly now — "Want to enable GitHub sync? Drop your GitHub PAT (classic, `repo` scope) here, or type `skip` to set it up later." If they provide one, use `request_secret` with name `GLIDEOS_ACCESS_TOKEN`; set `github_pat_provided = true`. If they skip, set `github_pat_provided = false`.
-
-```sql
--- Only run if github_pat_provided = true
-UPDATE design_setup_items
-SET status = 'done', completed_at = now(), status_note = 'GLIDEOS_ACCESS_TOKEN secret configured', updated_at = now()
-WHERE org_id = 'default' AND item_key IN ('github_access_token', 'github_connected');
-```
-
-If `github_pat_provided = false`, mark those items as `pending` instead:
-
-```sql
--- Only run if github_pat_provided = false
-UPDATE design_setup_items
-SET status = 'pending', status_note = 'Add GLIDEOS_ACCESS_TOKEN secret to enable /update and /git-push', updated_at = now()
-WHERE org_id = 'default' AND item_key IN ('github_access_token', 'github_connected');
-```
-
-And mark the license item as pending (user needs to request a license after install):
+Mark the GitHub sync item as optional/skipped — no PAT is needed or asked for during install:
 
 ```sql
 UPDATE design_setup_items
-SET status = 'pending', status_note = 'License required to enable builds — request at workbench-install.glideapps.dev', updated_at = now()
-WHERE org_id = 'default' AND item_key = 'workbench_licensed';
+SET status = 'skipped', status_note = 'Optional: GitHub sync is only needed for Workbench development. Not required for normal use.', updated_at = now()
+WHERE org_id = 'default' AND item_key = 'github_connected';
 ```
 
 ---
@@ -1165,14 +1144,10 @@ x-wb-email: {user_email}
 
 ## Step 11 — Done
 
-Reply to the user — tailor the pending items based on `github_pat_provided`:
-
-**If `github_pat_provided = true`:**
-
 ```
-✅ Design Workbench v2.4.2 installed successfully ({install_mode} mode).
+✅ Design Workbench installed successfully ({install_mode} mode).
 
-The Workbench is now deployed and connected to {target_app_name}.
+The Workbench is now deployed and connected to {target_app_name}. Your license has been activated automatically.
 
 You can now:
 - Click any element in the preview to inspect and style it
@@ -1181,31 +1156,8 @@ You can now:
 - Create workflows with the Workflow canvas (⚡ icon)
 - Check the Setup panel (clipboard icon) to see what's configured and what's next
 
-The Setup panel shows 2 pending items:
-- Workbench licensed — request a license at workbench-install.glideapps.dev
-- AI models configured — default is GlideOS credits with Sonnet/Haiku (no action needed unless you want to change it)
+The Setup panel shows 1 pending item:
+- AI models configured — open the AI tab in Settings to choose your provider and configure API keys
 
-Type /build to execute pending instructions. Type /update to fetch the latest Workbench version.
-```
-
-**If `github_pat_provided = false`:**
-
-```
-✅ Design Workbench v2.4.2 installed successfully ({install_mode} mode).
-
-The Workbench is now deployed and connected to {target_app_name}.
-
-You can now:
-- Click any element in the preview to inspect and style it
-- Use the Blocks panel to queue build instructions
-- View build history in the Edits panel
-- Create workflows with the Workflow canvas (⚡ icon)
-- Check the Setup panel (clipboard icon) to see what's configured and what's next
-
-The Setup panel shows 3 pending items:
-- Workbench licensed — request a license at workbench-install.glideapps.dev
-- GitHub access token — add a GLIDEOS_ACCESS_TOKEN secret to enable /update and /git-push
-- AI models configured — default is GlideOS credits with Sonnet/Haiku (no action needed unless you want to change it)
-
-Type /build to execute pending instructions. Type /update to fetch the latest Workbench version (requires GitHub token).
+Type /build to execute pending instructions.
 ```
