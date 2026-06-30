@@ -637,6 +637,331 @@ ON CONFLICT (org_id, email) DO NOTHING;
 
 ---
 
+## Step 2c — Create remaining tables (missing from Step 2)
+
+These tables are referenced by `server.ts` but were not in the Step 2 DDL. Run each block — all use `IF NOT EXISTS` so re-runs are safe.
+
+### AI presets, task models, providers, model catalogs
+
+```sql
+CREATE TABLE IF NOT EXISTS design_ai_presets (
+  id           BIGSERIAL PRIMARY KEY,
+  org_id       TEXT NOT NULL DEFAULT 'default',
+  preset_id    TEXT NOT NULL,
+  label        TEXT NOT NULL,
+  description  TEXT,
+  icon         TEXT,
+  task_defaults JSONB NOT NULL DEFAULT '{}',
+  sort_order   INTEGER DEFAULT 0,
+  is_built_in  BOOLEAN DEFAULT true,
+  provider_priority TEXT[] NOT NULL DEFAULT '{anthropic,deepseek,openai,google-ai-studio}',
+  UNIQUE (org_id, preset_id)
+);
+COMMENT ON TABLE design_ai_presets IS 'Named AI configuration presets (Fast, Balanced, etc). task_defaults is a map of task_id → {our_model, glide_model, glide_modifier}.';
+
+CREATE TABLE IF NOT EXISTS design_task_models (
+  org_id        TEXT NOT NULL DEFAULT 'default',
+  task_id       TEXT NOT NULL,
+  label         TEXT NOT NULL,
+  description   TEXT,
+  our_model     TEXT NOT NULL DEFAULT 'anthropic/claude-haiku-4-5',
+  our_source    TEXT NOT NULL DEFAULT 'glide_credits',
+  glide_model   TEXT NOT NULL DEFAULT 'anthropic/claude-haiku-4-5',
+  glide_modifier TEXT NOT NULL DEFAULT 'balanced',
+  PRIMARY KEY (org_id, task_id)
+);
+COMMENT ON TABLE design_task_models IS 'Per-task AI model configuration. our_model = Workbench pre-processing model; glide_model = suggested GlideOS handoff model.';
+
+CREATE TABLE IF NOT EXISTS design_providers (
+  id           TEXT PRIMARY KEY,
+  label        TEXT NOT NULL,
+  description  TEXT,
+  key_page_url TEXT,
+  secret_name  TEXT NOT NULL,
+  logo_domain  TEXT,
+  is_local     BOOLEAN DEFAULT false,
+  enabled      BOOLEAN DEFAULT true,
+  sort_order   INTEGER DEFAULT 99,
+  created_at   TIMESTAMPTZ DEFAULT now()
+);
+COMMENT ON TABLE design_providers IS 'AI provider catalog. secret_name is the GlideOS project secret that holds the API key.';
+
+CREATE TABLE IF NOT EXISTS design_our_models (
+  id           TEXT PRIMARY KEY,
+  provider     TEXT NOT NULL,
+  tier         TEXT NOT NULL,
+  label        TEXT NOT NULL,
+  description  TEXT,
+  is_default   BOOLEAN DEFAULT false,
+  enabled      BOOLEAN DEFAULT true,
+  sort_order   INTEGER DEFAULT 99,
+  updated_at   TIMESTAMPTZ DEFAULT now()
+);
+COMMENT ON TABLE design_our_models IS 'Models the Workbench itself can use for pre-processing (own-API-key mode).';
+
+CREATE TABLE IF NOT EXISTS design_glide_models (
+  id           TEXT PRIMARY KEY,
+  provider     TEXT NOT NULL,
+  tier         TEXT NOT NULL,
+  label        TEXT NOT NULL,
+  description  TEXT,
+  is_default   BOOLEAN DEFAULT false,
+  enabled      BOOLEAN DEFAULT true,
+  sort_order   INTEGER DEFAULT 99,
+  updated_at   TIMESTAMPTZ DEFAULT now()
+);
+COMMENT ON TABLE design_glide_models IS 'GlideOS platform model catalog — the models users can reference for the GlideOS handoff column.';
+```
+
+### Install management, file cache, scaffold templates
+
+```sql
+CREATE TABLE IF NOT EXISTS design_install_log (
+  id             BIGSERIAL PRIMARY KEY,
+  org_id         TEXT NOT NULL DEFAULT 'default',
+  installer_email TEXT NOT NULL,
+  project_id     TEXT,
+  project_name   TEXT,
+  invite_code_used TEXT,
+  installed_at   TIMESTAMPTZ DEFAULT now()
+);
+COMMENT ON TABLE design_install_log IS 'One row per completed Workbench install.';
+
+CREATE TABLE IF NOT EXISTS design_install_requests (
+  id           BIGSERIAL PRIMARY KEY,
+  org_id       TEXT NOT NULL DEFAULT 'default',
+  email        TEXT NOT NULL,
+  status       TEXT NOT NULL DEFAULT 'pending',
+  requested_at TIMESTAMPTZ DEFAULT now(),
+  reviewed_at  TIMESTAMPTZ,
+  reviewed_by  TEXT,
+  note         TEXT
+);
+COMMENT ON TABLE design_install_requests IS 'Legacy email-based install access requests. New installs use license_requests table instead.';
+
+CREATE TABLE IF NOT EXISTS design_invite_codes (
+  id         BIGSERIAL PRIMARY KEY,
+  org_id     TEXT NOT NULL DEFAULT 'default',
+  code       TEXT UNIQUE NOT NULL,
+  label      TEXT,
+  max_uses   INTEGER DEFAULT 1,
+  uses       INTEGER DEFAULT 0,
+  revoked    BOOLEAN DEFAULT false,
+  expires_at TIMESTAMPTZ,
+  created_by TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+COMMENT ON TABLE design_invite_codes IS 'Single-use or limited-use invite codes for bypassing the access request flow.';
+
+CREATE TABLE IF NOT EXISTS design_file_cache (
+  id         BIGSERIAL PRIMARY KEY,
+  org_id     TEXT NOT NULL DEFAULT 'default',
+  path       TEXT NOT NULL,
+  content    TEXT NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (org_id, path)
+);
+COMMENT ON TABLE design_file_cache IS 'Cached workspace file content used by the GitHub push bridge.';
+
+CREATE TABLE IF NOT EXISTS design_scaffold_templates (
+  id        BIGSERIAL PRIMARY KEY,
+  file_name TEXT NOT NULL UNIQUE,
+  content   TEXT NOT NULL,
+  version   TEXT,
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+COMMENT ON TABLE design_scaffold_templates IS 'Canonical versions of scaffold files (AGENTS.md, PROJECT_NOTES.md, PREFERENCES.md). Keeps new installs in sync.';
+
+CREATE TABLE IF NOT EXISTS design_push_log (
+  id          BIGSERIAL PRIMARY KEY,
+  org_id      TEXT NOT NULL DEFAULT 'default',
+  pushed_by   TEXT,
+  commit_sha  TEXT,
+  files_pushed TEXT[] DEFAULT '{}',
+  message     TEXT,
+  pushed_at   TIMESTAMPTZ DEFAULT now()
+);
+COMMENT ON TABLE design_push_log IS 'GitHub push history — one row per successful commit.';
+```
+
+### Org infrastructure tables
+
+```sql
+CREATE TABLE IF NOT EXISTS design_org_members (
+  id       BIGSERIAL PRIMARY KEY,
+  org_id   TEXT NOT NULL DEFAULT 'default',
+  email    TEXT NOT NULL,
+  role     TEXT NOT NULL DEFAULT 'member',
+  added_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (org_id, email)
+);
+COMMENT ON TABLE design_org_members IS 'Workbench org members and their roles.';
+
+CREATE TABLE IF NOT EXISTS design_org_connections (
+  id           BIGSERIAL PRIMARY KEY,
+  org_id       TEXT NOT NULL DEFAULT 'default',
+  provider     TEXT NOT NULL,
+  config       JSONB DEFAULT '{}',
+  created_at   TIMESTAMPTZ DEFAULT now()
+);
+COMMENT ON TABLE design_org_connections IS 'External service connections (Slack, GitHub, webhooks, etc).';
+
+CREATE TABLE IF NOT EXISTS design_connected_apps (
+  id           BIGSERIAL PRIMARY KEY,
+  org_id       TEXT NOT NULL DEFAULT 'default',
+  app_slug     TEXT NOT NULL,
+  app_name     TEXT,
+  app_url      TEXT,
+  proxy_paths  TEXT[] DEFAULT '{}',
+  data_source  TEXT DEFAULT 'neon',
+  is_primary   BOOLEAN DEFAULT false,
+  created_at   TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (org_id, app_slug)
+);
+COMMENT ON TABLE design_connected_apps IS 'Apps connected to this Workbench install for preview.';
+
+CREATE TABLE IF NOT EXISTS design_app_domains (
+  id           BIGSERIAL PRIMARY KEY,
+  org_id       TEXT NOT NULL,
+  app_slug     TEXT NOT NULL,
+  app_name     TEXT,
+  hostname     TEXT NOT NULL,
+  cname_target TEXT,
+  status       TEXT DEFAULT 'pending',
+  created_at   TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (org_id, hostname)
+);
+COMMENT ON TABLE design_app_domains IS 'Custom domains bound to deployed apps.';
+```
+
+### Analytics & telemetry
+
+```sql
+CREATE TABLE IF NOT EXISTS design_credit_snapshots (
+  id           BIGSERIAL PRIMARY KEY,
+  org_id       TEXT NOT NULL DEFAULT 'default',
+  credits_used DOUBLE PRECISION,
+  credits_remaining DOUBLE PRECISION,
+  quota        DOUBLE PRECISION,
+  snapped_at   TIMESTAMPTZ DEFAULT now()
+);
+COMMENT ON TABLE design_credit_snapshots IS 'Periodic GlideOS credit balance snapshots.';
+
+CREATE TABLE IF NOT EXISTS design_token_snapshots (
+  id           BIGSERIAL PRIMARY KEY,
+  org_id       TEXT NOT NULL DEFAULT 'default',
+  model        TEXT,
+  input_tokens BIGINT DEFAULT 0,
+  output_tokens BIGINT DEFAULT 0,
+  snapped_at   TIMESTAMPTZ DEFAULT now()
+);
+COMMENT ON TABLE design_token_snapshots IS 'Periodic own-key token usage snapshots by model.';
+
+CREATE TABLE IF NOT EXISTS design_workflow_scan_log (
+  id          BIGSERIAL PRIMARY KEY,
+  org_id      TEXT NOT NULL DEFAULT 'default',
+  scan_id     TEXT,
+  tables_found INTEGER DEFAULT 0,
+  routes_found INTEGER DEFAULT 0,
+  suggestions_created INTEGER DEFAULT 0,
+  scanned_at  TIMESTAMPTZ DEFAULT now()
+);
+COMMENT ON TABLE design_workflow_scan_log IS 'History of workflow suggestion scans.';
+
+CREATE TABLE IF NOT EXISTS design_workflow_drafts (
+  id          BIGSERIAL PRIMARY KEY,
+  org_id      TEXT NOT NULL DEFAULT 'default',
+  name        TEXT NOT NULL,
+  nodes       JSONB NOT NULL DEFAULT '[]',
+  created_at  TIMESTAMPTZ DEFAULT now(),
+  updated_at  TIMESTAMPTZ DEFAULT now()
+);
+COMMENT ON TABLE design_workflow_drafts IS 'Unsaved / in-progress workflow drafts.';
+```
+
+### Heal block — missing columns on existing tables
+
+Run this on every install (fresh or upgrade) — safe to re-run:
+
+```sql
+-- design_ai_config: missing columns
+ALTER TABLE design_ai_config ADD COLUMN IF NOT EXISTS anthropic_key_hint TEXT;
+ALTER TABLE design_ai_config ADD COLUMN IF NOT EXISTS openai_key_hint TEXT;
+ALTER TABLE design_ai_config ADD COLUMN IF NOT EXISTS google_key_hint TEXT;
+ALTER TABLE design_ai_config ADD COLUMN IF NOT EXISTS deepseek_key_hint TEXT;
+ALTER TABLE design_ai_config ADD COLUMN IF NOT EXISTS confirm_flagship BOOLEAN DEFAULT false;
+ALTER TABLE design_ai_config ADD COLUMN IF NOT EXISTS glide_allowed_models JSONB DEFAULT '{}';
+
+-- design_instructions: missing column
+ALTER TABLE design_instructions ADD COLUMN IF NOT EXISTS used_glide_credits BOOLEAN;
+
+-- design_orgs: missing columns
+ALTER TABLE design_orgs ADD COLUMN IF NOT EXISTS custom_domain TEXT;
+ALTER TABLE design_orgs ADD COLUMN IF NOT EXISTS domain_status TEXT;
+ALTER TABLE design_orgs ADD COLUMN IF NOT EXISTS domain_cname_target TEXT;
+ALTER TABLE design_orgs ADD COLUMN IF NOT EXISTS credit_poll_minutes INTEGER DEFAULT 60;
+
+-- design_target_routes: ensure full v2 schema columns exist
+ALTER TABLE design_target_routes ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE design_target_routes ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+```
+
+### Seed providers and model catalogs
+
+```sql
+INSERT INTO design_providers (id, label, description, key_page_url, secret_name, logo_domain, sort_order) VALUES
+('anthropic',      'Anthropic',       'Claude models — Haiku, Sonnet, Opus.',            'https://console.anthropic.com/account/keys',  'ANTHROPIC_API_KEY', 'anthropic.com',    1),
+('openai',         'OpenAI',          'GPT models — GPT-4o, GPT-5 and above.',           'https://platform.openai.com/api-keys',        'OPENAI_API_KEY',    'openai.com',       2),
+('google-ai-studio','Google AI Studio','Gemini models — Flash, Pro. Google AI Studio.', 'https://aistudio.google.com/app/apikey',      'GOOGLE_API_KEY',    'google.com',       3),
+('deepseek',       'DeepSeek',        'DeepSeek V4 Flash + Pro. Very cost-effective.',   'https://platform.deepseek.com/api_keys',      'DEEPSEEK_API_KEY',  'deepseek.com',     4)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO design_our_models (id, provider, tier, label, description, is_default, sort_order) VALUES
+('anthropic/claude-haiku-4-5',          'anthropic',       'fast',     'Claude Haiku 4.5',    'Fastest Anthropic model.',                      false, 1),
+('anthropic/claude-sonnet-4-6',         'anthropic',       'balanced', 'Claude Sonnet 4.6',   'Best speed/intelligence balance from Anthropic.',true,  2),
+('anthropic/claude-opus-4-7',           'anthropic',       'flagship', 'Claude Opus 4.7',     'Most capable Anthropic model.',                 false, 3),
+('openai/gpt-5.4-mini',                 'openai',          'fast',     'GPT-5.4 Mini',        'OpenAI high-volume mini.',                      false, 4),
+('openai/gpt-5.5',                      'openai',          'flagship', 'GPT-5.5',             'OpenAI flagship model.',                        false, 5),
+('google-ai-studio/gemini-3.1-flash-lite','google-ai-studio','flash',  'Gemini 3.1 Flash Lite','Cheapest Gemini 3.1.',                         false, 6),
+('google-ai-studio/gemini-3-flash-preview','google-ai-studio','flash', 'Gemini 3 Flash',      'Low-latency Flash model.',                      false, 7),
+('google-ai-studio/gemini-3.1-pro-preview','google-ai-studio','pro',  'Gemini 3.1 Pro',      'Most advanced Gemini.',                         false, 8),
+('deepseek/deepseek-v4-flash',          'deepseek',        'fast',     'DeepSeek V4 Flash',   'Fast, 1M context. $0.28/M output.',             false, 9),
+('deepseek/deepseek-v4-pro',            'deepseek',        'flagship', 'DeepSeek V4 Pro',     'Most capable DeepSeek, 1M context.',            false, 10)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO design_glide_models (id, provider, tier, label, description, is_default, sort_order) VALUES
+('anthropic/claude-haiku-4-5',           'anthropic',       'fast',     'Claude Haiku 4.5',    'Fastest Anthropic model.',                      false, 1),
+('anthropic/claude-sonnet-4-6',          'anthropic',       'balanced', 'Claude Sonnet 4.6',   'Best speed/intelligence balance.',              true,  2),
+('anthropic/claude-opus-4-7',            'anthropic',       'flagship', 'Claude Opus 4.7',     'Most capable Anthropic model.',                 false, 3),
+('openai/gpt-5.4-mini',                  'openai',          'fast',     'GPT-5.4 Mini',        'OpenAI high-volume mini.',                      false, 4),
+('openai/gpt-5.5',                       'openai',          'flagship', 'GPT-5.5',             'OpenAI flagship model.',                        false, 5),
+('google-ai-studio/gemini-3.1-flash-lite','google-ai-studio','flash',  'Gemini 3.1 Flash Lite','Cheapest Gemini 3.1.',                         false, 6),
+('google-ai-studio/gemini-3-flash-preview','google-ai-studio','flash', 'Gemini 3 Flash',      'Low-latency Flash model.',                      false, 7),
+('google-ai-studio/gemini-3.1-pro-preview','google-ai-studio','pro',  'Gemini 3.1 Pro',      'Most advanced Gemini.',                         false, 8),
+('deepseek/deepseek-v4-flash',           'deepseek',        'fast',     'DeepSeek V4 Flash',   'Fast, 1M context.',                             false, 9),
+('deepseek/deepseek-v4-pro',             'deepseek',        'flagship', 'DeepSeek V4 Pro',     'Most capable DeepSeek.',                        false, 10)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO design_ai_presets (org_id, preset_id, label, icon, task_defaults, sort_order) VALUES
+('default', 'fast',     'Fast & cheap',    '⚡', '{"style":{"our_model":"anthropic/claude-haiku-4-5","glide_model":"anthropic/claude-haiku-4-5","glide_modifier":"fast"},"conditional_logic":{"our_model":"anthropic/claude-haiku-4-5","glide_model":"anthropic/claude-haiku-4-5","glide_modifier":"fast"},"layout":{"our_model":"anthropic/claude-haiku-4-5","glide_model":"anthropic/claude-haiku-4-5","glide_modifier":"fast"},"workflows":{"our_model":"anthropic/claude-haiku-4-5","glide_model":"anthropic/claude-haiku-4-5","glide_modifier":"fast"},"data_binding":{"our_model":"anthropic/claude-haiku-4-5","glide_model":"anthropic/claude-haiku-4-5","glide_modifier":"fast"},"ai_suggestions":{"our_model":"google-ai-studio/gemini-3-flash-preview","glide_model":"anthropic/claude-haiku-4-5","glide_modifier":"fast"},"instruction_formatting":{"our_model":"anthropic/claude-haiku-4-5","glide_model":"anthropic/claude-haiku-4-5","glide_modifier":"fast"}}', 1),
+('default', 'balanced', 'Balanced',        '⚖️', '{"style":{"our_model":"anthropic/claude-sonnet-4-6","glide_model":"anthropic/claude-haiku-4-5","glide_modifier":"balanced"},"conditional_logic":{"our_model":"anthropic/claude-sonnet-4-6","glide_model":"anthropic/claude-haiku-4-5","glide_modifier":"balanced"},"layout":{"our_model":"anthropic/claude-sonnet-4-6","glide_model":"anthropic/claude-haiku-4-5","glide_modifier":"balanced"},"workflows":{"our_model":"anthropic/claude-sonnet-4-6","glide_model":"anthropic/claude-haiku-4-5","glide_modifier":"balanced"},"data_binding":{"our_model":"anthropic/claude-sonnet-4-6","glide_model":"anthropic/claude-haiku-4-5","glide_modifier":"balanced"},"ai_suggestions":{"our_model":"google-ai-studio/gemini-3-flash-preview","glide_model":"anthropic/claude-haiku-4-5","glide_modifier":"balanced"},"instruction_formatting":{"our_model":"anthropic/claude-sonnet-4-6","glide_model":"anthropic/claude-haiku-4-5","glide_modifier":"balanced"}}', 2),
+('default', 'cheap',    'Light & cheap',   '💰', '{"style":{"our_model":"google-ai-studio/gemini-3.1-flash-lite","glide_model":"anthropic/claude-haiku-4-5","glide_modifier":"fast"},"conditional_logic":{"our_model":"google-ai-studio/gemini-3.1-flash-lite","glide_model":"anthropic/claude-haiku-4-5","glide_modifier":"fast"},"layout":{"our_model":"google-ai-studio/gemini-3.1-flash-lite","glide_model":"anthropic/claude-haiku-4-5","glide_modifier":"fast"},"workflows":{"our_model":"google-ai-studio/gemini-3.1-flash-lite","glide_model":"anthropic/claude-haiku-4-5","glide_modifier":"fast"},"data_binding":{"our_model":"google-ai-studio/gemini-3.1-flash-lite","glide_model":"anthropic/claude-haiku-4-5","glide_modifier":"fast"},"ai_suggestions":{"our_model":"google-ai-studio/gemini-3.1-flash-lite","glide_model":"anthropic/claude-haiku-4-5","glide_modifier":"fast"},"instruction_formatting":{"our_model":"google-ai-studio/gemini-3.1-flash-lite","glide_model":"anthropic/claude-haiku-4-5","glide_modifier":"fast"}}', 3),
+('default', 'custom',   'Custom',          '🎯', '{}', 4)
+ON CONFLICT (org_id, preset_id) DO NOTHING;
+
+INSERT INTO design_task_models (org_id, task_id, label, description, our_model, our_source, glide_model, glide_modifier) VALUES
+('default', 'style',               'Style & appearance',  'Color, font, size, spacing changes',             'anthropic/claude-sonnet-4-6',        'glide_credits', 'anthropic/claude-haiku-4-5', 'balanced'),
+('default', 'conditional_logic',   'Conditional logic',   'Show/hide rules, if/then based on data',         'anthropic/claude-sonnet-4-6',        'glide_credits', 'anthropic/claude-haiku-4-5', 'balanced'),
+('default', 'layout',              'Layout & structure',  'Moving, reordering, adding/removing sections',   'anthropic/claude-sonnet-4-6',        'glide_credits', 'anthropic/claude-haiku-4-5', 'balanced'),
+('default', 'workflows',           'Workflow automation', 'Triggers, conditions, actions, notifications',   'anthropic/claude-sonnet-4-6',        'glide_credits', 'anthropic/claude-haiku-4-5', 'balanced'),
+('default', 'data_binding',        'Data binding',        'Connecting fields to tables, computed values',   'anthropic/claude-sonnet-4-6',        'glide_credits', 'anthropic/claude-haiku-4-5', 'balanced'),
+('default', 'ai_suggestions',      'AI suggestions',      'Background schema scanning, idea generation',    'google-ai-studio/gemini-3-flash-preview', 'glide_credits', 'anthropic/claude-haiku-4-5', 'balanced'),
+('default', 'instruction_formatting','Instruction formatting','Format and clarify build instructions',      'anthropic/claude-sonnet-4-6',        'glide_credits', 'anthropic/claude-haiku-4-5', 'balanced')
+ON CONFLICT (org_id, task_id) DO NOTHING;
+```
+
+---
+
 ## Step 2b — Initialize the setup checklist
 
 Seed the setup items that will track install progress in real-time. These start as `not_started` and get updated as each install step completes. This is what populates the Setup rail panel in the Workbench.
@@ -855,25 +1180,45 @@ For each route, assign a sensible label and emoji based on the component name:
 
 For each `component` file referenced in routes, read from `apps/{target_slug}/client/pages/{Component}.tsx` and write to `apps/design-workbench/preview/pages/{Component}.tsx`.
 
-After copying each page, **rewrite its `apiUrl` imports**: the target's pages import `apiUrl` from `"../App"`, but in the Workbench preview that helper lives in `./proxy` (not `App.tsx`) to break the App↔pages circular import. Run this rewrite on every copied page:
+After copying each page, you MUST apply **three sweep passes** in order. Skipping any one produces a blank or broken canvas with no visible error message.
+
+**Sweep 1 — Rewrite `apiUrl` imports and raw `fetch` calls to use `apiFetch`:**
+
+The target's pages import `apiUrl` from `"../App"` and call `fetch(apiUrl(path))` directly. In the preview, `apiUrl` lives in `./proxy` and all direct `fetch("/app-api/…")` calls must be replaced. Without this, fetches hit the Workbench worker which has no matching handler, fall through to the SPA shell HTML, and `.json()` silently throws inside `useQuery` — canvas shows empty data with no error.
 
 ```
-import { apiUrl } from "../App";      →  import { apiFetch } from "../proxy";
-import { apiUrl, apiWriteUrl } from "../App";  →  import { apiFetch } from "../proxy";
-fetch(apiUrl(x), init)                →  apiFetch(x, init)
+import { apiUrl } from "../App";              →  import { apiFetch } from "../proxy";
+import { apiUrl, apiWriteUrl } from "../App"; →  import { apiFetch } from "../proxy";
+fetch(apiUrl(x), init)                        →  apiFetch(x, init)
+fetch("/app-api/foo", init)                   →  apiFetch("/app-api/foo", init)
 ```
 
-`apiFetch` is the convenience helper from `proxy.ts` — `fetch(apiUrl(path), init)` in one call. Pages that exclusively use `apiUrl` directly should be rewritten to `apiFetch`; the helper exists specifically so the rewrite contract lives in one place.
+**Watch out for multi-line imports** — naive "insert after last import line" breaks when the last import wraps across lines (`import {\n  A, B,\n} from "…"`). Track brace balance to find where the import block actually ends before inserting.
 
-**Lint check after rewrites:** scan `apps/design-workbench/preview/**/*.tsx` for any remaining `from "../App"` import or any `<Link to="/...">` / `navigate("/...")` whose path does NOT start with `/preview/`. Bare-`/` paths bubble up to the GlideOS shell which interprets them as "open a new app tab" — the visible symptom is the iframe flipping back to dashboard while a duplicate Workbench tab opens. Concrete pattern rewrites:
+**Sweep 2 — Prefix all navigation paths with `/preview`:**
+
+Target pages use bare paths like `/isos/:id`. When the preview iframe navigates to `/isos/3`, there's no match in the Workbench router — it falls through to the catch-all which renders `<LayoutCanvas />` (the whole Workbench shell) inside itself. The symptom is: clicking any row causes the iframe to briefly render a second Workbench, then snap back to the dashboard.
+
+Apply to EVERY `<Link to=`, `navigate(`, and `window.location` in every copied page and component:
 
 ```
-<Link to={`/iso/${id}`}>           →  <Link to={`/preview/iso/${id}`}>
-onClick={() => navigate("/")}       →  onClick={() => navigate("/preview/")}
-navigate(`/iso/${id}`)              →  navigate(`/preview/iso/${id}`)
+<Link to={`/isos/${id}`}>          →  <Link to={`/preview/isos/${id}`}>
+onClick={() => navigate("/")}      →  onClick={() => navigate("/preview/")}
+navigate(`/isos/${id}`)            →  navigate(`/preview/isos/${id}`)
+<Route path="/isos/:id" …>        →  <Route path="/preview/isos/:id" …>
 ```
 
-Apply to every Link / navigate / Route-relative path in the copied preview pages, components, and Nav brand.
+Also align param names: if the target route uses `:isoId` and the detail page reads `useParams().isoId`, your preview Route must also use `:isoId` — not `:id`.
+
+**Sweep 3 — Lint check (mandatory before deploying):**
+
+Scan every file under `apps/design-workbench/preview/**/*.tsx` and reject any of these patterns:
+- `from "../App"` — missed import rewrite (Sweep 1)
+- `fetch("/app-api/` — raw fetch not wrapped in `apiFetch` (Sweep 1)
+- `<Link to="/"` or `navigate("/")` where path doesn't start with `/preview` (Sweep 2)
+- `<Route path="/"` where path doesn't start with `/preview` (Sweep 2)
+
+Fix every hit before calling `update_preview`. These bugs all present identically as "empty page, no error."
 
 **Import depth rewrite rule:** If a page imports local shared components like `import { ComponentName } from '../components/...'`, those imports stay as-is. The paths are relative to the pages directory, so `../components/` is correct from inside `preview/pages/`. 
 
@@ -1029,6 +1374,9 @@ VALUES
 ON CONFLICT (org_id, method, path_pattern) DO UPDATE
   SET sql_query = EXCLUDED.sql_query, param_bindings = EXCLUDED.param_bindings;
 ```
+
+**CRITICAL — path_pattern must NOT include `/app-api` prefix:**
+The `/app-api/route/*` handler strips `/app-api/route` before matching `path_pattern`. So if your target route is `GET /app-api/isos`, the `path_pattern` to store is `/isos`, NOT `/app-api/isos`. Storing the full `/app-api/isos` means the route never matches and every canvas fetch returns `{ error: "No route matched..." }` — silently, because `useQuery` swallows non-JSON responses. Double-check every row you insert.
 
 **Notes:**
 - This step is manual + LLM-assisted. The agent can scan the target server.ts, but extracting SQL accurately requires reading what each handler actually queries and returns. Show 2-3 worked examples from the target's server code, ask the user to verify, and insert the rows.
