@@ -1,0 +1,6 @@
+# Claude Code Stack — runtime scratch, never commit
+.DS_Store
+.claude/scratch/
+.claude/worktrees/
+.claude/next_prompt.md
+.claude/.automation-offered

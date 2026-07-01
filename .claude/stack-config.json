@@ -1,0 +1,40 @@
+{
+  "stack_version": "1.1.4",
+  "stack_tier": 1,
+  "purpose": "Public delivery mirror for the GlideOS Design Workbench — manifest.json + workbench-install.md fetched by installed agents via raw URLs. Not a dev repo.",
+  "created": "2026-07-01",
+  "last_modified": "2026-07-01",
+  "orchestration_mode": "main-thread",
+  "strict_mode": false,
+  "domain_mode": null,
+  "sensitivity": { "level": "normal", "notes": "Public repo — nothing secret ever lands here." },
+  "active_subagents": [],
+  "required_approvals": [],
+  "model_overrides": {},
+  "skill_overrides": {},
+  "related_repos": [
+    {
+      "name": "GlideOS-Design-Workbench",
+      "remote": "https://github.com/bschonbrun/GlideOS-Design-Workbench.git",
+      "local_path": "../GlideOS-Design-Workbench",
+      "role": "private source-of-truth; run its ./sync-public.sh to update the files here"
+    }
+  ],
+  "cost_protection": {
+    "per_session_alert_usd": 5.00,
+    "per_day_alert_usd": 50.00,
+    "per_session_hard_cap_usd": null
+  },
+  "change_history": [
+    {
+      "date": "2026-07-01T00:00:00Z",
+      "setting": "init",
+      "old_value": null,
+      "new_value": "tier 1, delivery mirror",
+      "reason": "init",
+      "scope": "project",
+      "also_updated_global": false,
+      "invoked_via": "/project-init"
+    }
+  ]
+}
