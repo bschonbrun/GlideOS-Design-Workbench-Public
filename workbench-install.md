@@ -1,4 +1,4 @@
-# Design Workbench v2.5.2 — Bootstrap Install
+# Design Workbench v2.5.3 — Bootstrap Install
 
 The Design Workbench is a visual tool for building and iterating on GlideOS apps without writing code. It provides a canvas interface to inspect and style elements, an AI-powered instruction queue, workflow automation, appearance controls, and full build history. This install procedure sets it up in your project and connects it to one of your deployed apps.
 
@@ -881,7 +881,9 @@ COMMENT ON TABLE design_workflow_drafts IS 'Unsaved / in-progress workflow draft
 
 ### Heal block — missing columns on existing tables
 
-Run this on every install (fresh or upgrade) — safe to re-run:
+Run this on every install (fresh or upgrade) — safe to re-run.
+
+**Important:** this block must run BEFORE the seed INSERTs below. `CREATE TABLE IF NOT EXISTS` silently no-ops if a table already exists from a prior partial install, leaving it with a stale schema. These `ALTER TABLE … ADD COLUMN IF NOT EXISTS` statements bring any such table up to the current spec before seeds run.
 
 ```sql
 -- design_ai_config: missing columns
@@ -904,6 +906,20 @@ ALTER TABLE design_orgs ADD COLUMN IF NOT EXISTS credit_poll_minutes INTEGER DEF
 -- design_target_routes: ensure full v2 schema columns exist
 ALTER TABLE design_target_routes ADD COLUMN IF NOT EXISTS description TEXT;
 ALTER TABLE design_target_routes ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+
+-- design_glide_models: v1 installs missing label/enabled/updated_at columns
+ALTER TABLE design_glide_models ADD COLUMN IF NOT EXISTS label TEXT;
+ALTER TABLE design_glide_models ADD COLUMN IF NOT EXISTS enabled BOOLEAN DEFAULT true;
+ALTER TABLE design_glide_models ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+UPDATE design_glide_models SET label = id WHERE label IS NULL;
+
+-- design_task_models: v1 installs had single `model` column instead of four-column split
+-- Neutralise the legacy NOT NULL so the new-column seeds don't conflict
+ALTER TABLE design_task_models ALTER COLUMN model SET DEFAULT 'anthropic/claude-haiku-4-5';
+ALTER TABLE design_task_models ADD COLUMN IF NOT EXISTS our_model TEXT NOT NULL DEFAULT 'anthropic/claude-haiku-4-5';
+ALTER TABLE design_task_models ADD COLUMN IF NOT EXISTS our_source TEXT NOT NULL DEFAULT 'glide_credits';
+ALTER TABLE design_task_models ADD COLUMN IF NOT EXISTS glide_model TEXT NOT NULL DEFAULT 'anthropic/claude-haiku-4-5';
+ALTER TABLE design_task_models ADD COLUMN IF NOT EXISTS glide_modifier TEXT NOT NULL DEFAULT 'balanced';
 ```
 
 ### Seed providers and model catalogs
@@ -940,7 +956,9 @@ INSERT INTO design_glide_models (id, provider, tier, label, description, is_defa
 ('google-ai-studio/gemini-3.1-pro-preview','google-ai-studio','pro',  'Gemini 3.1 Pro',      'Most advanced Gemini.',                         false, 8),
 ('deepseek/deepseek-v4-flash',           'deepseek',        'fast',     'DeepSeek V4 Flash',   'Fast, 1M context.',                             false, 9),
 ('deepseek/deepseek-v4-pro',             'deepseek',        'flagship', 'DeepSeek V4 Pro',     'Most capable DeepSeek.',                        false, 10)
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET
+  provider = EXCLUDED.provider, tier = EXCLUDED.tier, label = EXCLUDED.label,
+  description = EXCLUDED.description, is_default = EXCLUDED.is_default, sort_order = EXCLUDED.sort_order;
 
 INSERT INTO design_ai_presets (org_id, preset_id, label, icon, task_defaults, sort_order) VALUES
 ('default', 'fast',     'Fast & cheap',    '⚡', '{"style":{"our_model":"anthropic/claude-haiku-4-5","glide_model":"anthropic/claude-haiku-4-5","glide_modifier":"fast"},"conditional_logic":{"our_model":"anthropic/claude-haiku-4-5","glide_model":"anthropic/claude-haiku-4-5","glide_modifier":"fast"},"layout":{"our_model":"anthropic/claude-haiku-4-5","glide_model":"anthropic/claude-haiku-4-5","glide_modifier":"fast"},"workflows":{"our_model":"anthropic/claude-haiku-4-5","glide_model":"anthropic/claude-haiku-4-5","glide_modifier":"fast"},"data_binding":{"our_model":"anthropic/claude-haiku-4-5","glide_model":"anthropic/claude-haiku-4-5","glide_modifier":"fast"},"ai_suggestions":{"our_model":"google-ai-studio/gemini-3-flash-preview","glide_model":"anthropic/claude-haiku-4-5","glide_modifier":"fast"},"instruction_formatting":{"our_model":"anthropic/claude-haiku-4-5","glide_model":"anthropic/claude-haiku-4-5","glide_modifier":"fast"}}', 1),
@@ -950,14 +968,17 @@ INSERT INTO design_ai_presets (org_id, preset_id, label, icon, task_defaults, so
 ON CONFLICT (org_id, preset_id) DO NOTHING;
 
 INSERT INTO design_task_models (org_id, task_id, label, description, our_model, our_source, glide_model, glide_modifier) VALUES
-('default', 'style',               'Style & appearance',  'Color, font, size, spacing changes',             'anthropic/claude-sonnet-4-6',        'glide_credits', 'anthropic/claude-haiku-4-5', 'balanced'),
-('default', 'conditional_logic',   'Conditional logic',   'Show/hide rules, if/then based on data',         'anthropic/claude-sonnet-4-6',        'glide_credits', 'anthropic/claude-haiku-4-5', 'balanced'),
-('default', 'layout',              'Layout & structure',  'Moving, reordering, adding/removing sections',   'anthropic/claude-sonnet-4-6',        'glide_credits', 'anthropic/claude-haiku-4-5', 'balanced'),
-('default', 'workflows',           'Workflow automation', 'Triggers, conditions, actions, notifications',   'anthropic/claude-sonnet-4-6',        'glide_credits', 'anthropic/claude-haiku-4-5', 'balanced'),
-('default', 'data_binding',        'Data binding',        'Connecting fields to tables, computed values',   'anthropic/claude-sonnet-4-6',        'glide_credits', 'anthropic/claude-haiku-4-5', 'balanced'),
+('default', 'style',               'Style & appearance',  'Color, font, size, spacing changes',             'anthropic/claude-sonnet-4-6',             'glide_credits', 'anthropic/claude-haiku-4-5', 'balanced'),
+('default', 'conditional_logic',   'Conditional logic',   'Show/hide rules, if/then based on data',         'anthropic/claude-sonnet-4-6',             'glide_credits', 'anthropic/claude-haiku-4-5', 'balanced'),
+('default', 'layout',              'Layout & structure',  'Moving, reordering, adding/removing sections',   'anthropic/claude-sonnet-4-6',             'glide_credits', 'anthropic/claude-haiku-4-5', 'balanced'),
+('default', 'workflows',           'Workflow automation', 'Triggers, conditions, actions, notifications',   'anthropic/claude-sonnet-4-6',             'glide_credits', 'anthropic/claude-haiku-4-5', 'balanced'),
+('default', 'data_binding',        'Data binding',        'Connecting fields to tables, computed values',   'anthropic/claude-sonnet-4-6',             'glide_credits', 'anthropic/claude-haiku-4-5', 'balanced'),
 ('default', 'ai_suggestions',      'AI suggestions',      'Background schema scanning, idea generation',    'google-ai-studio/gemini-3-flash-preview', 'glide_credits', 'anthropic/claude-haiku-4-5', 'balanced'),
-('default', 'instruction_formatting','Instruction formatting','Format and clarify build instructions',      'anthropic/claude-sonnet-4-6',        'glide_credits', 'anthropic/claude-haiku-4-5', 'balanced')
-ON CONFLICT (org_id, task_id) DO NOTHING;
+('default', 'instruction_formatting','Instruction formatting','Format and clarify build instructions',      'anthropic/claude-sonnet-4-6',             'glide_credits', 'anthropic/claude-haiku-4-5', 'balanced')
+ON CONFLICT (org_id, task_id) DO UPDATE SET
+  label = EXCLUDED.label, description = EXCLUDED.description,
+  our_model = EXCLUDED.our_model, our_source = EXCLUDED.our_source,
+  glide_model = EXCLUDED.glide_model, glide_modifier = EXCLUDED.glide_modifier;
 ```
 
 ---
@@ -974,9 +995,10 @@ INSERT INTO design_setup_items (org_id, item_key, title, description, category, 
 ('default', 'workbench_licensed',        'Workbench licensed',               'A valid license is active for this project (required to queue builds).',                  'core',         'done',        true, 3),
 ('default', 'target_app_connected',      'Target app connected',             'A target app URL is stored in design_orgs.connected_app_url.',                           'core',         'not_started', true, 4),
 ('default', 'preview_pages_configured', 'Preview pages configured',         'Preview pages exist under preview/pages/ and are registered in design_pages.',            'core',         'not_started', true, 5),
-('default', 'github_connected',          'GitHub sync enabled',              'GLIDEOS_ACCESS_TOKEN secret is set. Enables /update command to pull Workbench updates.', 'integrations', 'not_started', false, 10),
-('default', 'ai_models_configured',      'AI models configured',             'AI model preferences set. Default: GlideOS credits with Sonnet/Haiku split.',            'ai',           'not_started', false, 20),
-('default', 'install_access_configured', 'Install access configured',        'Email gate and invite codes are set up so others can install the Workbench.',             'access',       'not_started', false, 30)
+('default', 'ai_providers_configured',    'AI providers configured',          'At least one AI provider API key is set in GlideOS Secrets (Anthropic, OpenAI, Google, DeepSeek).', 'ai', 'not_started', true,  100),
+('default', 'ai_preferences_set',        'AI model preferences set',         'Task models configured. GlideOS credits or own-key mode chosen.',                        'ai',           'not_started', false, 110),
+('default', 'github_connected',          'GitHub sync enabled',              'Optional. Add GLIDEOS_ACCESS_TOKEN (GitHub classic PAT, repo scope) as a GlideOS project secret to enable /git-push (push project files back to GitHub). Not required for /update — the Workbench installer handles that automatically.', 'integrations', 'not_started', false, 200),
+('default', 'resend_configured',         'Resend API key configured',        'RESEND_API_KEY secret set. Required for install access-request notification emails.',    'integrations', 'not_started', false, 210)
 ON CONFLICT (org_id, item_key) DO NOTHING;
 ```
 
@@ -1378,6 +1400,16 @@ ON CONFLICT (org_id, method, path_pattern) DO UPDATE
 **CRITICAL — path_pattern must NOT include `/app-api` prefix:**
 The `/app-api/route/*` handler strips `/app-api/route` before matching `path_pattern`. So if your target route is `GET /app-api/isos`, the `path_pattern` to store is `/isos`, NOT `/app-api/isos`. Storing the full `/app-api/isos` means the route never matches and every canvas fetch returns `{ error: "No route matched..." }` — silently, because `useQuery` swallows non-JSON responses. Double-check every row you insert.
 
+**CRITICAL — Neon `.query()` returns `{rows, fields}`, NOT a bare array:**
+The `/app-api/route/*` handler uses `sql.query(text, params[])` to run parameterized SQL. The `@neondatabase/serverless` driver's `.query()` form returns `{ rows: [...], fields: [...] }` — **not** a bare array. The handler must unwrap via `result.rows` before indexing or measuring length. The correct pattern in server.ts is:
+
+```ts
+const result = await (sql as any).query(row.sql_query, args);
+const rows: any[] = result.rows ?? result; // fallback for bare-array drivers
+```
+
+If this unwrap is missing, `shape === "single"` always returns 404 ("Not found") even when the row exists, because `rows[0]` is `undefined` (it's indexing an object, not an array). **This is the single most common reason detail pages return "Not found" after a correct install.**
+
 **Notes:**
 - This step is manual + LLM-assisted. The agent can scan the target server.ts, but extracting SQL accurately requires reading what each handler actually queries and returns. Show 2-3 worked examples from the target's server code, ask the user to verify, and insert the rows.
 - The `ca_equipment` table name in the example above is CarboNet-specific. Substitute the actual table names from the target app's server.ts.
@@ -1459,11 +1491,11 @@ SET status = 'done', completed_at = now(), status_note = 'Deployed and published
 WHERE org_id = 'default' AND item_key = 'workbench_deployed';
 ```
 
-Mark the GitHub sync item as optional/skipped — no PAT is needed or asked for during install:
+Mark `github_connected` as skipped — `/update` works via the installer proxy without a GitHub PAT:
 
 ```sql
 UPDATE design_setup_items
-SET status = 'skipped', status_note = 'Optional: GitHub sync is only needed for Workbench development. Not required for normal use.', updated_at = now()
+SET status = 'skipped', status_note = '/update uses the installer proxy — no GitHub PAT required', updated_at = now()
 WHERE org_id = 'default' AND item_key = 'github_connected';
 ```
 
@@ -1504,8 +1536,10 @@ You can now:
 - Create workflows with the Workflow canvas (⚡ icon)
 - Check the Setup panel (clipboard icon) to see what's configured and what's next
 
-The Setup panel shows 1 pending item:
-- AI models configured — open the AI tab in Settings to choose your provider and configure API keys
+Check the Setup panel for remaining items — typically:
+- AI providers configured — add at least one API key in GlideOS Secrets (Anthropic, OpenAI, Google, or DeepSeek), then open the AI tab to configure model preferences
 
-Type /build to execute pending instructions.
+Type `/update` at any time to get the latest version — no GitHub token required.
+
+Type /build to execute any pending instructions.
 ```

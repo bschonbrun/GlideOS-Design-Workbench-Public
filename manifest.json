@@ -1,6 +1,6 @@
 {
-  "version": "2.5.2",
-  "updated_at": "2026-07-01",
+  "version": "2.5.3",
+  "updated_at": "2026-07-08",
   "description": "CarboNet Design Workbench — scaffold manifest",
   "files": [
     {
@@ -206,6 +206,11 @@
     }
   ],
   "changelog": [
+    {
+      "version": "2.5.3",
+      "date": "2026-07-08",
+      "summary": "Installer-proxied /update — no PAT required. GET /app-api/manifest on the installer now accepts x-wb-org-id + x-wb-project-id headers and enforces a license check for installed copies using the installer proxy for /update. Anonymous callers (no headers) still get the manifest freely for bootstrapping. /update command updated to fetch manifest and scaffold files via the installer proxy instead of GitHub directly — installed copies no longer need GLIDEOS_ACCESS_TOKEN. Step 9 of the install doc simplified — GitHub PAT prompt removed entirely; github_connected item auto-marked skipped. github_connected setup item description updated to clarify it is optional (only needed for /git-push, not /update). Step 11 done message updated to remove PAT mention and instead explain /update works without a token."
+    },
     {
       "version": "2.5.2",
       "date": "2026-07-01",
