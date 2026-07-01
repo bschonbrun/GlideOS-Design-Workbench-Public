@@ -1,320 +1,43 @@
 {
-  "version": "2.5.3",
-  "updated_at": "2026-07-08",
+  "version": "2.5.6",
+  "updated_at": "2026-07-01",
   "description": "CarboNet Design Workbench — scaffold manifest",
   "files": [
-    {
-      "path": "AGENTS.md",
-      "dest": "AGENTS.md",
-      "description": "Permanent agent behaviour rules (append-only)"
-    },
-    {
-      "path": "PROJECT_NOTES.md",
-      "dest": "PROJECT_NOTES.md",
-      "description": "Project memory, architecture, build history"
-    },
-    {
-      "path": "PREFERENCES.md",
-      "dest": "PREFERENCES.md",
-      "description": "Agent communication preferences"
-    },
-    {
-      "path": "github/manifest.json",
-      "dest": "github/manifest.json",
-      "description": "Scaffold manifest — versioned list of all installable files"
-    },
-    {
-      "path": "github/workbench-install.md",
-      "dest": "github/workbench-install.md",
-      "description": "Bootstrap install instructions — v2.2.0"
-    },
-    {
-      "path": "github/scaffold/auth.d.ts",
-      "dest": "apps/design-workbench/auth.d.ts",
-      "description": "Auth type declarations"
-    },
-    {
-      "path": "github/scaffold/Button.tsx",
-      "dest": "apps/design-workbench/client/components/Button.tsx",
-      "description": "Glide UI: Button primitive"
-    },
-    {
-      "path": "github/scaffold/Dialog.tsx",
-      "dest": "apps/design-workbench/client/components/Dialog.tsx",
-      "description": "Glide UI: Dialog primitive (exports DialogHeader, DialogTitle, DialogFooter)"
-    },
-    {
-      "path": "github/scaffold/Input.tsx",
-      "dest": "apps/design-workbench/client/components/Input.tsx",
-      "description": "Glide UI: Input primitive"
-    },
-    {
-      "path": "github/scaffold/Label.tsx",
-      "dest": "apps/design-workbench/client/components/Label.tsx",
-      "description": "Glide UI: Label primitive"
-    },
-    {
-      "path": "github/scaffold/Select.tsx",
-      "dest": "apps/design-workbench/client/components/Select.tsx",
-      "description": "Glide UI: Select primitive (responsive)"
-    },
-    {
-      "path": "github/scaffold/Tabs.tsx",
-      "dest": "apps/design-workbench/client/components/Tabs.tsx",
-      "description": "Glide UI: Tabs primitive"
-    },
-    {
-      "path": "github/scaffold/Nav.tsx",
-      "dest": "apps/design-workbench/preview/components/Nav.tsx",
-      "description": "Glide UI: Nav primitive (used by preview shell)"
-    },
-    {
-      "path": "github/scaffold/Toast.tsx",
-      "dest": "apps/design-workbench/preview/components/Toast.tsx",
-      "description": "Glide UI: Toast primitive (exports Toaster — used by preview shell)"
-    },
-    {
-      "path": "github/scaffold/proxy.ts",
-      "dest": "apps/design-workbench/preview/proxy.ts",
-      "description": "Preview proxy module (apiUrl, apiWriteUrl, apiFetch, initProxyConfig) — same-origin path rewrite to /app-api/route/*. Lives in its own module so preview pages can import it without circular dependency on App.tsx."
-    },
-    {
-      "path": "github/scaffold/preview-App.template.tsx",
-      "dest": "apps/design-workbench/preview/App.tsx",
-      "description": "Canonical preview/App.tsx — Step 7d patches target-specific bits only. Source of truth for the iframe shell, element interceptor, NAVIGATE handler. Imports apiUrl/apiWriteUrl/initProxyConfig from ./proxy."
-    }
-  ],
-  "app_files": [
-    {
-      "path": "package.json",
-      "dest": "package.json",
-      "description": "Shared npm dependencies"
-    },
-    {
-      "path": "apps/design-workbench/source-bundle.ts",
-      "dest": "apps/design-workbench/source-bundle.ts",
-      "description": "Source bundle part 1 — small/medium design-workbench files (auto-generated)"
-    },
-    {
-      "path": "apps/design-workbench/source-bundle-2.ts",
-      "dest": "apps/design-workbench/source-bundle-2.ts",
-      "description": "Source bundle part 2 — server.ts + scaffold files (auto-generated)"
-    },
-    {
-      "path": "apps/design-workbench/source-bundle-3.ts",
-      "dest": "apps/design-workbench/source-bundle-3.ts",
-      "description": "Source bundle part 3 — LayoutCanvas.tsx (auto-generated)"
-    },
-    {
-      "path": "apps/design-workbench/server.ts",
-      "dest": "apps/design-workbench/server.ts",
-      "description": "Workbench Hono API server"
-    },
-    {
-      "path": "apps/design-workbench/auth.d.ts",
-      "dest": "apps/design-workbench/auth.d.ts",
-      "description": "Auth type declarations"
-    },
-    {
-      "path": "apps/design-workbench/client/App.tsx",
-      "dest": "apps/design-workbench/client/App.tsx",
-      "description": "Workbench root React component"
-    },
-    {
-      "path": "apps/design-workbench/client/pages/LayoutCanvas.tsx",
-      "dest": "apps/design-workbench/client/pages/LayoutCanvas.tsx",
-      "description": "Main canvas — all panel logic"
-    },
-    {
-      "path": "apps/design-workbench/client/pages/BlocksPanel.tsx",
-      "dest": "apps/design-workbench/client/pages/BlocksPanel.tsx",
-      "description": "Blocks panel — DB-backed block catalog"
-    },
-    {
-      "path": "apps/design-workbench/client/pages/CommandsPanel.tsx",
-      "dest": "apps/design-workbench/client/pages/CommandsPanel.tsx",
-      "description": "Commands panel — slash command list and editor"
-    },
-    {
-      "path": "apps/design-workbench/client/pages/SetupModal.tsx",
-      "dest": "apps/design-workbench/client/pages/SetupModal.tsx",
-      "description": "Scaffold version-drift banner"
-    },
-    {
-      "path": "apps/design-workbench/client/pages/WorkflowCanvas.tsx",
-      "dest": "apps/design-workbench/client/pages/WorkflowCanvas.tsx",
-      "description": "Workflow canvas — SVG node graph"
-    },
-    {
-      "path": "apps/design-workbench/client/pages/WorkflowNodeTypes.tsx",
-      "dest": "apps/design-workbench/client/pages/WorkflowNodeTypes.tsx",
-      "description": "Workflow node type definitions"
-    },
-    {
-      "path": "apps/design-workbench/client/pages/WorkflowEdgeTypes.tsx",
-      "dest": "apps/design-workbench/client/pages/WorkflowEdgeTypes.tsx",
-      "description": "Workflow edge type definitions"
-    },
-    {
-      "path": "apps/design-workbench/client/pages/ComponentBrowser.tsx",
-      "dest": "apps/design-workbench/client/pages/ComponentBrowser.tsx",
-      "description": "Component browser panel"
-    },
-    {
-      "path": "apps/design-workbench/client/pages/ThemeBuilder.tsx",
-      "dest": "apps/design-workbench/client/pages/ThemeBuilder.tsx",
-      "description": "Theme builder panel"
-    },
-    {
-      "path": "apps/design-workbench/client/components/Button.tsx",
-      "dest": "apps/design-workbench/client/components/Button.tsx"
-    },
-    {
-      "path": "apps/design-workbench/client/components/Dialog.tsx",
-      "dest": "apps/design-workbench/client/components/Dialog.tsx"
-    },
-    {
-      "path": "apps/design-workbench/client/components/Input.tsx",
-      "dest": "apps/design-workbench/client/components/Input.tsx"
-    },
-    {
-      "path": "apps/design-workbench/client/components/Label.tsx",
-      "dest": "apps/design-workbench/client/components/Label.tsx"
-    },
-    {
-      "path": "apps/design-workbench/client/components/Select.tsx",
-      "dest": "apps/design-workbench/client/components/Select.tsx"
-    },
-    {
-      "path": "apps/design-workbench/client/components/Tabs.tsx",
-      "dest": "apps/design-workbench/client/components/Tabs.tsx"
-    },
-    {
-      "path": "apps/design-workbench-installer/server.ts",
-      "dest": "apps/design-workbench-installer/server.ts",
-      "description": "Public installer worker — serves /app-api/install + /app-api/scaffold/* outside Glide's edge auth gate"
-    },
-    {
-      "path": "apps/design-workbench-installer/client/App.tsx",
-      "dest": "apps/design-workbench-installer/client/App.tsx",
-      "description": "Installer landing-page root component"
-    },
-    {
-      "path": "apps/design-workbench-installer/client/pages/Home.tsx",
-      "dest": "apps/design-workbench-installer/client/pages/Home.tsx",
-      "description": "Installer landing page — shows the install URL with copy button"
-    }
+    { "path": "AGENTS.md", "dest": "AGENTS.md", "description": "Permanent agent behaviour rules (append-only)" },
+    { "path": "PROJECT_NOTES.md", "dest": "PROJECT_NOTES.md", "description": "Project memory, architecture, build history" },
+    { "path": "PREFERENCES.md", "dest": "PREFERENCES.md", "description": "Agent communication preferences" },
+    { "path": "github/manifest.json", "dest": "github/manifest.json", "description": "Scaffold manifest" },
+    { "path": "github/workbench-install.md", "dest": "github/workbench-install.md", "description": "Bootstrap install instructions" },
+    { "path": "github/scaffold/auth.d.ts", "dest": "apps/design-workbench/auth.d.ts" },
+    { "path": "github/scaffold/Button.tsx", "dest": "apps/design-workbench/client/components/Button.tsx" },
+    { "path": "github/scaffold/Dialog.tsx", "dest": "apps/design-workbench/client/components/Dialog.tsx" },
+    { "path": "github/scaffold/Input.tsx", "dest": "apps/design-workbench/client/components/Input.tsx" },
+    { "path": "github/scaffold/Label.tsx", "dest": "apps/design-workbench/client/components/Label.tsx" },
+    { "path": "github/scaffold/Select.tsx", "dest": "apps/design-workbench/client/components/Select.tsx" },
+    { "path": "github/scaffold/Tabs.tsx", "dest": "apps/design-workbench/client/components/Tabs.tsx" },
+    { "path": "github/scaffold/Nav.tsx", "dest": "apps/design-workbench/preview/components/Nav.tsx" },
+    { "path": "github/scaffold/Toast.tsx", "dest": "apps/design-workbench/preview/components/Toast.tsx" },
+    { "path": "github/scaffold/proxy.ts", "dest": "apps/design-workbench/preview/proxy.ts" },
+    { "path": "github/scaffold/preview-App.template.tsx", "dest": "apps/design-workbench/preview/App.tsx" }
   ],
   "changelog": [
-    {
-      "version": "2.5.3",
-      "date": "2026-07-08",
-      "summary": "Installer-proxied /update — no PAT required. GET /app-api/manifest on the installer now accepts x-wb-org-id + x-wb-project-id headers and enforces a license check for installed copies using the installer proxy for /update. Anonymous callers (no headers) still get the manifest freely for bootstrapping. /update command updated to fetch manifest and scaffold files via the installer proxy instead of GitHub directly — installed copies no longer need GLIDEOS_ACCESS_TOKEN. Step 9 of the install doc simplified — GitHub PAT prompt removed entirely; github_connected item auto-marked skipped. github_connected setup item description updated to clarify it is optional (only needed for /git-push, not /update). Step 11 done message updated to remove PAT mention and instead explain /update works without a token."
-    },
-    {
-      "version": "2.5.2",
-      "date": "2026-07-01",
-      "summary": "Phase 0b — Two-repo GitHub split. Install doc and manifest now served from a public GitHub repo (bschonbrun/GlideOS-Design-Workbench-Public). GET /app-api/install on the installer now fetches from the public repo — no auth header needed. New GET /app-api/manifest endpoint serves manifest.json from the public repo (used by /update command). PAT requirement removed from install prerequisites — installers no longer need GLIDEOS_ACCESS_TOKEN to fetch the install doc or scaffold files. External installs now work without any GitHub credentials."
-    },
-    {
-      "version": "2.5.1",
-      "date": "2026-06-30",
-      "summary": "Phase 5 — Admin tab renamed to GitHub. Settings modal tab and rail icon now labelled 'GitHub'. Sub-tab bar simplified to two tabs: Push to GitHub + Git History. Invites, Admins, and Super Admin sub-tabs removed from the rendered UI (source components kept in LayoutCanvas.tsx but no longer displayed — will move to installer admin UI in Phase 6)."
-    },
-    {
-      "version": "2.5.0",
-      "date": "2026-06-30",
-      "summary": "Setup system Phase 4 — AI/Models wizard. New tables: design_task_models (per-task model assignment for our side + GlideOS handoff), design_ai_presets (4 built-in presets: Fast & powerful, Balanced, Light & cheap, Custom). Server endpoints: GET /app-api/ai-presets, GET/PUT /app-api/task-models, POST /app-api/ai-wizard/test (live test call). Client: AiModelsWizard component — 3-step modal overlay: (1) budget preset picker with emoji cards, (2) per-task our_model + glide_model dropdowns, (3) test call with live latency + result. Wizard launcher in AI tab (task model summary banner + Configure → button) and in Setup checklist (ai_models_configured item action button). Completing the wizard marks ai_models_configured as done."
-    },
-    {
-      "version": "2.4.2",
-      "date": "2026-06-30",
-      "summary": "Setup system Phase 3 — Default vs Expert install mode. New Step 0 asks the user one question before the install begins: Default (fastest path, sensible auto-choices) or Expert (full control, explains each decision). install_mode column added to design_orgs DDL. Prerequisites simplified — PAT question deferred to Step 0 / Step 9 based on mode. Step 5 proxy_paths: Default leaves empty (auto-set in Step 7d); Expert may pre-fill. Step 7h data-source detection: Default announces its decision and proceeds without asking for confirmation; Expert presents the detection and asks for user confirmation. Step 7i fixture seeding: Default runs silently; Expert narrates each table. Step 9 GitHub PAT: Expert mode respects github_pat_provided from Step 0; Default mode asks a brief one-liner at end of Step 9 and branches the setup items status accordingly. Step 11 done message now shows install_mode and correct pending count based on whether GitHub token was provided."
-    },
-    {
-      "version": "2.4.1",
-      "date": "2026-06-29",
-      "summary": "Setup system Phase 2 — real-time install progress. The install doc (workbench-install.md) now writes to design_setup_items at each step so a user watching the Setup rail panel can see progress in real-time as the install proceeds. New tables design_setup_items, design_wizards, design_wizard_state added to Step 2 schema. New Step 2b seeds all setup items in not_started state before install begins. Progress SQL calls added after: Step 2 (db_schema done), Steps 3+4 (workbench_deployed in_progress), Step 5 (target_app_connected done), Step 7f (preview_pages_configured done), Step 9 (workbench_deployed done, github items if token provided, workbench_licensed pending). v2.2.1 orientation/log mirror tables (design_log_mirror, design_orientation_signals) added to Step 2 schema block — were missing from previous install docs. Install doc header bumped to v2.4.1. Version bumped to 2.4.1."
-    },
-    {
-      "version": "2.4.0",
-      "date": "2026-06-29",
-      "summary": "Setup system Phase 1 — checklist rail + DB tables. New tables: design_setup_items (one row per setup step, data-driven), design_wizards (registry of topic wizards), design_wizard_state (per-org last answers). Server endpoints: GET/PUT /app-api/setup-items, GET /app-api/setup-summary, GET /app-api/wizards, GET /app-api/wizards/:key, PUT /app-api/wizards/:key/state. Client: SetupRailIcon (ClipboardList, amber badge), SetupChecklistPanel (progress bar, category groups, status icons, mark-done/skip/reset). License pill in panel header (Phase 0 integration). Seeded 9 setup items + AI Models wizard. License item seeded as done for owner project."
-    },
-    {
-      "version": "2.3.2",
-      "date": "2026-06-29",
-      "summary": "Phase 0 — project-level licensing. licensed_projects and license_requests tables on installer. License check/request/approve/grant endpoints on installer worker. Build-gate middleware on POST /app-api/build-requests (402 for unlicensed). License pill in Setup panel header. Bill's project auto-licensed as pro/active."
-    },
-    {
-      "version": "2.3.1",
-      "date": "2026-06-29",
-      "summary": "Architectural correction for the preview proxy. The v2.3.0 cross-origin design (apiUrl rewrites to connectedAppUrl + path, browser fetches the target directly) is architecturally unreachable on org-member-locked apps — Glide's edge auth gate 302s the OPTIONS preflight to the login screen before the target worker ever sees the request. v2.3.1 corrects: apiUrl rewrites stay same-origin to /app-api/route/*, served by the Workbench worker against its OWN Neon database. For shared-Neon targets that hits real tables; for Supabase/external targets the install routine seeds same-shape fixture mirror tables with realistic sample data (the preview is for designing UI, not viewing live data). New `github/scaffold/proxy.ts` ships apiUrl/apiFetch/initProxyConfig as their own module — breaks the circular App ↔ pages import that caused blank preview screens. preview-App.template.tsx imports from ./proxy and wires initProxyConfig into the mount useEffect. Step 2 schema gains CREATE TABLE IF NOT EXISTS for design_admins, design_install_allowlist, design_counter_health (all three were missing entirely), plus a v2.3 heal block (ALTER TABLE ... ADD COLUMN IF NOT EXISTS for proxy_paths, approved_at, acknowledged_at) and an installer-as-admin auto-seed (no more 'Forbidden' on every admin tab). Step 7d rewritten: PROXY_ROUTES code patch is gone (now data-driven via design_orgs.proxy_paths); pages import `apiFetch` from `../proxy`. New Step 7h–7j fork doc: detect Supabase / external target → fixture-mode install with DOUBLE PRECISION numerics (NEVER NUMERIC — Neon driver returns it as a JS string) and TEXT[] DEFAULT '{}' arrays. Nav brand link and all preview Link/navigate paths must be /preview/-prefixed (bare-/ paths fall through to the GlideOS shell, which interprets them as 'open a new app tab'). Auto-detection + auto-fixture-seed install agent lands as v2.3.2."
-    },
-    {
-      "version": "2.3.0",
-      "date": "2026-06-29",
-      "summary": "proxy_paths client-side fetch. New proxy_paths TEXT[] column on design_orgs. preview/App.tsx now calls initProxyConfig() on mount — apiUrl() routes matching prefixes directly from the browser to the connected app URL, bypassing Glide's auth wall universally (Supabase, external REST, shared Neon). Settings → Connections adds a 'Preview API paths' field. BUILT_IN_BLOCKS constant in server.ts — 14 generic blocks seeded by self-populate-cache and via new POST /app-api/admin/seed-blocks (fixes empty Blocks panel on new installs). New POST /app-api/admin/refresh-commands re-substitutes {connected_app_slug} in system command rows (fixes /publish pointing at wrong app). Install doc updated: proxy_paths in DDL, Step 5 explanation, Step 6b seed-blocks callout, refresh-commands note."
-    },
-    {
-      "version": "2.2.1",
-      "date": "2026-06-29",
-      "summary": "Three-layer orientation mechanism. Layer A: orientation signals written by Workbench mutating endpoints (build_clicked, instruction_queued, style_applied). Layer B: GET /app-api/orientation endpoint drains signals + returns server-side turn count from design_log_mirror. Layer C: Cloudflare cron watchdog writes design_counter_health rows; HealthBanner UI in canvas shows dismissible warnings. Probe code cleanup: design_iframe_signals table dropped, useParentSignalProbe removed. AGENTS.md per-turn flow updated to two mandatory steps. Push panel MANIFEST badge now refreshes after push."
-    },
-    {
-      "version": "2.2.0",
-      "date": "2026-06-28",
-      "summary": "Data-driven target-app routing + install-doc rewrite. New `design_target_routes` table + generic `GET /app-api/route/*` handler — connecting a target app's read routes is a row insert, not a code edit. New `design_agent_bridge_tokens` table backs the agent-bridge cache-write + push endpoints on the installer. preview/App.tsx is now a canonical scaffold (`github/scaffold/preview-App.template.tsx`) — copied from the working Workbench code so drift is impossible. workbench-install.md rewritten end-to-end: Step 3 iterates manifest.files generically; Step 7d patches the canonical template (4 precise patches) instead of inlining a hand-written shell that diverges from reality; Step 7e clarifies preview/components vs client/components separation; new Step 7g extracts target GET routes into design_target_routes. Six Glide UI primitives + auth.d.ts + Nav.tsx + Toast.tsx now ship in `github/scaffold/`. Push-panel bug fixes (cache ON CONFLICT DO NOTHING, force-push textarea reset, diff dedup). De-CarboNet pass: server.ts uses getConnectedApp(env, orgId); LayoutCanvas uses useQuery + connectedApp?.slug fallback; DEFAULT_PAGES = [] with design_pages as sole source of truth."
-    },
-    {
-      "version": "2.1.0",
-      "date": "2026-06-28",
-      "summary": "Public installer split-out. New dedicated app `design-workbench-installer` (public access, vanity URL workbench-install.glideapps.dev) hosts the install doc and scaffold proxy under /app-api/install and /app-api/scaffold/*. This bypasses Glide's edge auth wall that was blocking external installs from reaching the design-workbench worker. design-workbench stays org-member-locked; admin UI for invites/allowlist is unchanged. workbench-install.md, /update command, Super Admin install URL, and legacy approval-email link all repointed at the new installer."
-    },
-    {
-      "version": "2.0.0",
-      "date": "2026-06-28",
-      "summary": "Install system. Shareable /install URL served by the Workbench worker. Email-gated scaffold proxy (/api/scaffold/*) — approved emails get files, others get a request queued. Invite codes (single/multi-use, expiry, auto-approve on redemption). Super admin system (SUPER_ADMIN_EMAILS secret, separate ⚡ Super Admin tab). Admin → Invites tab: send invites with email + code, approve pending requests, manage active codes. Email notifications via Resend (workbench@carbonet.app). Install log table tracks per-project installs for future licensing. workbench-install.md updated to 10-step flow including preview page copy (Step 7)."
-    },
-    {
-      "version": "1.9.0",
-      "date": "2026-06-17",
-      "summary": "Generic blank-slate install. No CarboNet app bundled. Canvas preview now iframes the connected app URL (set in Settings → Connections). ConnectedAppSection added to Connections tab. GET/PUT /app-api/connected-app routes added. Manifest trimmed to Workbench-only files."
-    },
-    {
-      "version": "1.8.7",
-      "date": "2026-06-16",
-      "summary": "WorkflowButton on EquipmentList. Revert smoke-tested. Workflow templates: design_workflow_templates table, 6 built-in templates, CRUD routes, Templates panel in workflow sidebar."
-    },
-    {
-      "version": "1.8.6",
-      "date": "2026-06-15",
-      "summary": "Phase 3: Workflow AI routes fixed. Per-workflow settings drawer. Context freshness badge. Auto-scan on panel open. Route ordering lesson documented."
-    },
-    {
-      "version": "1.8.5",
-      "date": "2026-06-15",
-      "summary": "Edits panel merged Queue + History. Rail reordered. Turn counter atomic CTE. Agent action auto-dispatch bug fixed."
-    },
-    {
-      "version": "1.8.4",
-      "date": "2026-06-15",
-      "summary": "AGENTS.md turn counter + build queue check merged into one mandatory atomic db_execute per turn."
-    },
-    {
-      "version": "1.8.3",
-      "date": "2026-06-15",
-      "summary": "Workflow panel two-pane redesign. Phase 2 AI context layer complete. Suggestion engine scaffolded."
-    },
-    {
-      "version": "1.8.2",
-      "date": "2026-06-14",
-      "summary": "Source bundle architecture. Admin panel git history tab."
-    },
-    {
-      "version": "1.8.0",
-      "date": "2026-06-14",
-      "summary": "Initial GitHub release."
-    }
+    { "version": "2.5.6", "date": "2026-07-01", "summary": "HOTFIX — /update renamed to /pull-scaffold with response fingerprinting and network-call gate. Agents were short-circuiting the multi-step /update command. Fix: (1) renamed primary command to /pull-scaffold; (2) hard-coded network gate at step 1 requiring javascript tool fetch; (3) fingerprint requirement — reply must include manifest.updated_at verbatim. /update and /sync kept as aliases. Install doc seed SQL uses DO UPDATE so re-runs patch existing installs." },
+    { "version": "2.5.5", "date": "2026-07-09", "summary": "isOwner gate on GitHub tab verified. License version badge updates on /pull-scaffold runs." },
+    { "version": "2.5.4", "date": "2026-07-09", "summary": "GitHub tab hidden on installed copies via isOwner gate (GLIDEOS_ACCESS_TOKEN present). /update pings license endpoint after run." },
+    { "version": "2.5.3", "date": "2026-07-08", "summary": "Installer-proxied /update — no PAT required." },
+    { "version": "2.5.2", "date": "2026-07-01", "summary": "Two-repo GitHub split. Install doc + manifest served from public repo." },
+    { "version": "2.5.1", "date": "2026-06-30", "summary": "Phase 5 — Admin tab renamed to GitHub." },
+    { "version": "2.5.0", "date": "2026-06-30", "summary": "Phase 4 — AI/Models wizard." },
+    { "version": "2.4.2", "date": "2026-06-30", "summary": "Phase 3 — Default vs Expert install mode." },
+    { "version": "2.4.1", "date": "2026-06-29", "summary": "Phase 2 — real-time install progress." },
+    { "version": "2.4.0", "date": "2026-06-29", "summary": "Phase 1 — Setup checklist rail." },
+    { "version": "2.3.2", "date": "2026-06-29", "summary": "Phase 0 — project-level licensing." },
+    { "version": "2.3.1", "date": "2026-06-29", "summary": "Architectural correction for preview proxy — same-origin always." },
+    { "version": "2.2.1", "date": "2026-06-29", "summary": "Three-layer orientation mechanism." },
+    { "version": "2.2.0", "date": "2026-06-28", "summary": "Data-driven target-app routing + install-doc rewrite." },
+    { "version": "2.1.0", "date": "2026-06-28", "summary": "Public installer split-out." },
+    { "version": "2.0.0", "date": "2026-06-28", "summary": "Install system." },
+    { "version": "1.9.0", "date": "2026-06-17", "summary": "Generic blank-slate install." },
+    { "version": "1.8.0", "date": "2026-06-14", "summary": "Initial GitHub release." }
   ]
 }
