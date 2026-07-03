@@ -1,289 +1,84 @@
 {
-  "version": "2.5.6",
-  "updated_at": "2026-07-01",
+  "version": "2.6.0",
+  "updated_at": "2026-07-03",
   "description": "CarboNet Design Workbench — scaffold manifest",
-  "files": [
-    {
-      "path": "AGENTS.md",
-      "dest": "AGENTS.md",
-      "description": "Permanent agent behaviour rules (append-only)"
-    },
-    {
-      "path": "PROJECT_NOTES.md",
-      "dest": "PROJECT_NOTES.md",
-      "description": "Project memory, architecture, build history"
-    },
-    {
-      "path": "PREFERENCES.md",
-      "dest": "PREFERENCES.md",
-      "description": "Agent communication preferences"
-    },
-    {
-      "path": "github/manifest.json",
-      "dest": "github/manifest.json",
-      "description": "Scaffold manifest"
-    },
-    {
-      "path": "github/workbench-install.md",
-      "dest": "github/workbench-install.md",
-      "description": "Bootstrap install instructions"
-    },
-    {
-      "path": "scaffold/auth.d.ts",
-      "dest": "apps/design-workbench/auth.d.ts"
-    },
-    {
-      "path": "scaffold/Button.tsx",
-      "dest": "apps/design-workbench/client/components/Button.tsx"
-    },
-    {
-      "path": "scaffold/Dialog.tsx",
-      "dest": "apps/design-workbench/client/components/Dialog.tsx"
-    },
-    {
-      "path": "scaffold/Input.tsx",
-      "dest": "apps/design-workbench/client/components/Input.tsx"
-    },
-    {
-      "path": "scaffold/Label.tsx",
-      "dest": "apps/design-workbench/client/components/Label.tsx"
-    },
-    {
-      "path": "scaffold/Select.tsx",
-      "dest": "apps/design-workbench/client/components/Select.tsx"
-    },
-    {
-      "path": "scaffold/Tabs.tsx",
-      "dest": "apps/design-workbench/client/components/Tabs.tsx"
-    },
-    {
-      "path": "scaffold/Nav.tsx",
-      "dest": "apps/design-workbench/preview/components/Nav.tsx"
-    },
-    {
-      "path": "scaffold/Toast.tsx",
-      "dest": "apps/design-workbench/preview/components/Toast.tsx"
-    },
-    {
-      "path": "scaffold/proxy.ts",
-      "dest": "apps/design-workbench/preview/proxy.ts"
-    },
-    {
-      "path": "scaffold/preview-App.template.tsx",
-      "dest": "apps/design-workbench/preview/App.tsx"
-    }
-  ],
   "app_files": [
-    {
-      "path": "package.json",
-      "dest": "package.json",
-      "description": "Shared npm dependencies"
-    },
-    {
-      "path": "apps/design-workbench/source-bundle.ts",
-      "dest": "apps/design-workbench/source-bundle.ts",
-      "description": "Source bundle part 1 — small/medium design-workbench files (auto-generated)"
-    },
-    {
-      "path": "apps/design-workbench/source-bundle-2.ts",
-      "dest": "apps/design-workbench/source-bundle-2.ts",
-      "description": "Source bundle part 2 — server.ts + scaffold files (auto-generated)"
-    },
-    {
-      "path": "apps/design-workbench/source-bundle-3.ts",
-      "dest": "apps/design-workbench/source-bundle-3.ts",
-      "description": "Source bundle part 3 — LayoutCanvas.tsx (auto-generated)"
-    },
-    {
-      "path": "apps/design-workbench/server.ts",
-      "dest": "apps/design-workbench/server.ts",
-      "description": "Workbench Hono API server"
-    },
-    {
-      "path": "apps/design-workbench/auth.d.ts",
-      "dest": "apps/design-workbench/auth.d.ts",
-      "description": "Auth type declarations"
-    },
-    {
-      "path": "apps/design-workbench/client/App.tsx",
-      "dest": "apps/design-workbench/client/App.tsx",
-      "description": "Workbench root React component"
-    },
-    {
-      "path": "apps/design-workbench/client/pages/LayoutCanvas.tsx",
-      "dest": "apps/design-workbench/client/pages/LayoutCanvas.tsx",
-      "description": "Main canvas — all panel logic"
-    },
-    {
-      "path": "apps/design-workbench/client/pages/BlocksPanel.tsx",
-      "dest": "apps/design-workbench/client/pages/BlocksPanel.tsx",
-      "description": "Blocks panel — DB-backed block catalog"
-    },
-    {
-      "path": "apps/design-workbench/client/pages/CommandsPanel.tsx",
-      "dest": "apps/design-workbench/client/pages/CommandsPanel.tsx",
-      "description": "Commands panel — slash command list and editor"
-    },
-    {
-      "path": "apps/design-workbench/client/pages/SetupModal.tsx",
-      "dest": "apps/design-workbench/client/pages/SetupModal.tsx",
-      "description": "Scaffold version-drift banner"
-    },
-    {
-      "path": "apps/design-workbench/client/pages/WorkflowCanvas.tsx",
-      "dest": "apps/design-workbench/client/pages/WorkflowCanvas.tsx",
-      "description": "Workflow canvas — SVG node graph"
-    },
-    {
-      "path": "apps/design-workbench/client/pages/WorkflowNodeTypes.tsx",
-      "dest": "apps/design-workbench/client/pages/WorkflowNodeTypes.tsx",
-      "description": "Workflow node type definitions"
-    },
-    {
-      "path": "apps/design-workbench/client/pages/WorkflowEdgeTypes.tsx",
-      "dest": "apps/design-workbench/client/pages/WorkflowEdgeTypes.tsx",
-      "description": "Workflow edge type definitions"
-    },
-    {
-      "path": "apps/design-workbench/client/pages/ComponentBrowser.tsx",
-      "dest": "apps/design-workbench/client/pages/ComponentBrowser.tsx",
-      "description": "Component browser panel"
-    },
-    {
-      "path": "apps/design-workbench/client/pages/ThemeBuilder.tsx",
-      "dest": "apps/design-workbench/client/pages/ThemeBuilder.tsx",
-      "description": "Theme builder panel"
-    },
-    {
-      "path": "apps/design-workbench/client/components/Button.tsx",
-      "dest": "apps/design-workbench/client/components/Button.tsx"
-    },
-    {
-      "path": "apps/design-workbench/client/components/Dialog.tsx",
-      "dest": "apps/design-workbench/client/components/Dialog.tsx"
-    },
-    {
-      "path": "apps/design-workbench/client/components/Input.tsx",
-      "dest": "apps/design-workbench/client/components/Input.tsx"
-    },
-    {
-      "path": "apps/design-workbench/client/components/Label.tsx",
-      "dest": "apps/design-workbench/client/components/Label.tsx"
-    },
-    {
-      "path": "apps/design-workbench/client/components/Select.tsx",
-      "dest": "apps/design-workbench/client/components/Select.tsx"
-    },
-    {
-      "path": "apps/design-workbench/client/components/Tabs.tsx",
-      "dest": "apps/design-workbench/client/components/Tabs.tsx"
-    },
-    {
-      "path": "apps/design-workbench-installer/server.ts",
-      "dest": "apps/design-workbench-installer/server.ts",
-      "description": "Public installer worker — serves /app-api/install + /app-api/scaffold/* outside Glide's edge auth gate"
-    },
-    {
-      "path": "apps/design-workbench-installer/client/App.tsx",
-      "dest": "apps/design-workbench-installer/client/App.tsx",
-      "description": "Installer landing-page root component"
-    },
-    {
-      "path": "apps/design-workbench-installer/client/pages/Home.tsx",
-      "dest": "apps/design-workbench-installer/client/pages/Home.tsx",
-      "description": "Installer landing page — shows the install URL with copy button"
-    }
+    { "path": "package.json", "dest": "package.json", "description": "Shared npm dependencies" },
+
+    { "path": "apps/design-workbench/source-bundle.ts",   "dest": "apps/design-workbench/source-bundle.ts",   "description": "Source bundle part 1 — client/preview tsx (auto-generated)" },
+    { "path": "apps/design-workbench/source-bundle-2.ts", "dest": "apps/design-workbench/source-bundle-2.ts", "description": "Source bundle part 2 — server.ts + routes/*.ts + docs (auto-generated)" },
+    { "path": "apps/design-workbench/source-bundle-3.ts", "dest": "apps/design-workbench/source-bundle-3.ts", "description": "Source bundle part 3 — LayoutCanvas.tsx (auto-generated)" },
+    { "path": "apps/design-workbench/source-bundle-4.ts", "dest": "apps/design-workbench/source-bundle-4.ts", "description": "Source bundle part 4 — continuation (auto-generated)" },
+
+    { "path": "apps/design-workbench/server.ts", "dest": "apps/design-workbench/server.ts", "description": "Workbench Hono entrypoint — registers all route modules" },
+    { "path": "apps/design-workbench/auth.d.ts", "dest": "apps/design-workbench/auth.d.ts", "description": "Auth type declarations" },
+
+    { "path": "apps/design-workbench/routes/_shared.ts",     "dest": "apps/design-workbench/routes/_shared.ts",     "description": "Shared helpers, SYSTEM_COMMANDS, checkLicense, db()" },
+    { "path": "apps/design-workbench/routes/org.ts",         "dest": "apps/design-workbench/routes/org.ts",         "description": "Org/config routes (reads design_orgs.proxy_paths)" },
+    { "path": "apps/design-workbench/routes/design.ts",      "dest": "apps/design-workbench/routes/design.ts",      "description": "Design/instructions routes" },
+    { "path": "apps/design-workbench/routes/data.ts",        "dest": "apps/design-workbench/routes/data.ts",        "description": "Generic data read proxy" },
+    { "path": "apps/design-workbench/routes/workbench.ts",   "dest": "apps/design-workbench/routes/workbench.ts",   "description": "Workbench state routes" },
+    { "path": "apps/design-workbench/routes/ai.ts",          "dest": "apps/design-workbench/routes/ai.ts",          "description": "AI provider config routes" },
+    { "path": "apps/design-workbench/routes/content.ts",     "dest": "apps/design-workbench/routes/content.ts",     "description": "Content/scaffold routes" },
+    { "path": "apps/design-workbench/routes/admin.ts",       "dest": "apps/design-workbench/routes/admin.ts",       "description": "Admin + GitHub push + file-cache routes" },
+    { "path": "apps/design-workbench/routes/workflows.ts",   "dest": "apps/design-workbench/routes/workflows.ts",   "description": "Workflow engine + self-populate-cache" },
+    { "path": "apps/design-workbench/routes/console.ts",     "dest": "apps/design-workbench/routes/console.ts",     "description": "M1 hash-verified console (stage/precheck/observe)" },
+    { "path": "apps/design-workbench/routes/console-hash.ts","dest": "apps/design-workbench/routes/console-hash.ts","description": "M1 sha256Hex + hashesMatch helpers" },
+
+    { "path": "apps/design-workbench/client/App.tsx", "dest": "apps/design-workbench/client/App.tsx", "description": "Workbench root React component" },
+    { "path": "apps/design-workbench/client/pages/LayoutCanvas.tsx",       "dest": "apps/design-workbench/client/pages/LayoutCanvas.tsx",       "description": "Main canvas" },
+    { "path": "apps/design-workbench/client/pages/BlocksPanel.tsx",        "dest": "apps/design-workbench/client/pages/BlocksPanel.tsx" },
+    { "path": "apps/design-workbench/client/pages/CommandsPanel.tsx",      "dest": "apps/design-workbench/client/pages/CommandsPanel.tsx" },
+    { "path": "apps/design-workbench/client/pages/SetupModal.tsx",         "dest": "apps/design-workbench/client/pages/SetupModal.tsx" },
+    { "path": "apps/design-workbench/client/pages/ComponentBrowser.tsx",   "dest": "apps/design-workbench/client/pages/ComponentBrowser.tsx" },
+    { "path": "apps/design-workbench/client/pages/ThemeBuilder.tsx",       "dest": "apps/design-workbench/client/pages/ThemeBuilder.tsx" },
+    { "path": "apps/design-workbench/client/pages/WorkflowCanvas.tsx",     "dest": "apps/design-workbench/client/pages/WorkflowCanvas.tsx" },
+    { "path": "apps/design-workbench/client/pages/WorkflowNewModal.tsx",   "dest": "apps/design-workbench/client/pages/WorkflowNewModal.tsx" },
+    { "path": "apps/design-workbench/client/pages/WorkflowNodeTypes.tsx",  "dest": "apps/design-workbench/client/pages/WorkflowNodeTypes.tsx" },
+    { "path": "apps/design-workbench/client/pages/WorkflowEdgeTypes.tsx",  "dest": "apps/design-workbench/client/pages/WorkflowEdgeTypes.tsx" },
+
+    { "path": "apps/design-workbench/client/components/Button.tsx", "dest": "apps/design-workbench/client/components/Button.tsx" },
+    { "path": "apps/design-workbench/client/components/Dialog.tsx", "dest": "apps/design-workbench/client/components/Dialog.tsx" },
+    { "path": "apps/design-workbench/client/components/Input.tsx",  "dest": "apps/design-workbench/client/components/Input.tsx" },
+    { "path": "apps/design-workbench/client/components/Label.tsx",  "dest": "apps/design-workbench/client/components/Label.tsx" },
+    { "path": "apps/design-workbench/client/components/Select.tsx", "dest": "apps/design-workbench/client/components/Select.tsx" },
+    { "path": "apps/design-workbench/client/components/Tabs.tsx",   "dest": "apps/design-workbench/client/components/Tabs.tsx" },
+
+    { "path": "apps/design-workbench/preview/App.tsx",               "dest": "apps/design-workbench/preview/App.tsx" },
+    { "path": "apps/design-workbench/preview/proxy.ts",              "dest": "apps/design-workbench/preview/proxy.ts" },
+    { "path": "apps/design-workbench/preview/components/Nav.tsx",    "dest": "apps/design-workbench/preview/components/Nav.tsx" },
+    { "path": "apps/design-workbench/preview/pages/Dashboard.tsx",      "dest": "apps/design-workbench/preview/pages/Dashboard.tsx" },
+    { "path": "apps/design-workbench/preview/pages/EquipmentList.tsx",  "dest": "apps/design-workbench/preview/pages/EquipmentList.tsx" },
+    { "path": "apps/design-workbench/preview/pages/EquipmentDetail.tsx","dest": "apps/design-workbench/preview/pages/EquipmentDetail.tsx" },
+    { "path": "apps/design-workbench/preview/pages/EquipmentNew.tsx",   "dest": "apps/design-workbench/preview/pages/EquipmentNew.tsx" }
+  ],
+  "files": [
+    { "path": "AGENTS.md", "dest": "AGENTS.md", "description": "Permanent agent behaviour rules (append-only)" },
+    { "path": "PROJECT_NOTES.md", "dest": "PROJECT_NOTES.md", "description": "Project memory, architecture, build history" },
+    { "path": "PREFERENCES.md", "dest": "PREFERENCES.md", "description": "Agent communication preferences" },
+    { "path": "github/manifest.json", "dest": "github/manifest.json", "description": "Scaffold manifest" },
+    { "path": "github/workbench-install.md", "dest": "github/workbench-install.md", "description": "Bootstrap install instructions" },
+    { "path": "scaffold/Toast.tsx", "dest": "apps/design-workbench/preview/components/Toast.tsx" }
   ],
   "changelog": [
-    {
-      "version": "2.5.6",
-      "date": "2026-07-01",
-      "summary": "HOTFIX — /update renamed to /pull-scaffold with response fingerprinting and network-call gate. Agents were short-circuiting the multi-step /update command. Fix: (1) renamed primary command to /pull-scaffold; (2) hard-coded network gate at step 1 requiring javascript tool fetch; (3) fingerprint requirement — reply must include manifest.updated_at verbatim. /update and /sync kept as aliases. Install doc seed SQL uses DO UPDATE so re-runs patch existing installs."
-    },
-    {
-      "version": "2.5.5",
-      "date": "2026-07-09",
-      "summary": "isOwner gate on GitHub tab verified. License version badge updates on /pull-scaffold runs."
-    },
-    {
-      "version": "2.5.4",
-      "date": "2026-07-09",
-      "summary": "GitHub tab hidden on installed copies via isOwner gate (GLIDEOS_ACCESS_TOKEN present). /update pings license endpoint after run."
-    },
-    {
-      "version": "2.5.3",
-      "date": "2026-07-08",
-      "summary": "Installer-proxied /update — no PAT required."
-    },
-    {
-      "version": "2.5.2",
-      "date": "2026-07-01",
-      "summary": "Two-repo GitHub split. Install doc + manifest served from public repo."
-    },
-    {
-      "version": "2.5.1",
-      "date": "2026-06-30",
-      "summary": "Phase 5 — Admin tab renamed to GitHub."
-    },
-    {
-      "version": "2.5.0",
-      "date": "2026-06-30",
-      "summary": "Phase 4 — AI/Models wizard."
-    },
-    {
-      "version": "2.4.2",
-      "date": "2026-06-30",
-      "summary": "Phase 3 — Default vs Expert install mode."
-    },
-    {
-      "version": "2.4.1",
-      "date": "2026-06-29",
-      "summary": "Phase 2 — real-time install progress."
-    },
-    {
-      "version": "2.4.0",
-      "date": "2026-06-29",
-      "summary": "Phase 1 — Setup checklist rail."
-    },
-    {
-      "version": "2.3.2",
-      "date": "2026-06-29",
-      "summary": "Phase 0 — project-level licensing."
-    },
-    {
-      "version": "2.3.1",
-      "date": "2026-06-29",
-      "summary": "Architectural correction for preview proxy — same-origin always."
-    },
-    {
-      "version": "2.2.1",
-      "date": "2026-06-29",
-      "summary": "Three-layer orientation mechanism."
-    },
-    {
-      "version": "2.2.0",
-      "date": "2026-06-28",
-      "summary": "Data-driven target-app routing + install-doc rewrite."
-    },
-    {
-      "version": "2.1.0",
-      "date": "2026-06-28",
-      "summary": "Public installer split-out."
-    },
-    {
-      "version": "2.0.0",
-      "date": "2026-06-28",
-      "summary": "Install system."
-    },
-    {
-      "version": "1.9.0",
-      "date": "2026-06-17",
-      "summary": "Generic blank-slate install."
-    },
-    {
-      "version": "1.8.0",
-      "date": "2026-06-14",
-      "summary": "Initial GitHub release."
-    }
+    { "version": "2.6.0", "date": "2026-07-03", "summary": "Gap #1 fix — delivery kit reconstruction. Added real app_files array (was missing entirely) reflecting the M1 modular backend: server.ts + all 11 routes/*.ts (incl. console.ts/console-hash.ts), source-bundle*.ts, and full client/preview file set. Added scripts/generate-source-bundles.mjs (repo-side, deterministic, round-trip-verified, LF-only) so source-bundle*.ts are generated from main instead of hand-maintained; regenerated all three bundles to include the previously-missing modular routes (fixes fresh installs shipping a pre-M1 backendless app). Fixed design_file_cache DDL drift in github/workbench-install.md (path/content/updated_at + UNIQUE(org_id,path), plus design_orgs.proxy_paths heal) to match code." },
+    { "version": "2.5.6", "date": "2026-07-01", "summary": "HOTFIX — /update renamed to /pull-scaffold with response fingerprinting and network-call gate. Agents were short-circuiting the multi-step /update command. Fix: (1) renamed primary command to /pull-scaffold; (2) hard-coded network gate at step 1 requiring javascript tool fetch; (3) fingerprint requirement — reply must include manifest.updated_at verbatim. /update and /sync kept as aliases. Install doc seed SQL uses DO UPDATE so re-runs patch existing installs." },
+    { "version": "2.5.5", "date": "2026-07-09", "summary": "isOwner gate on GitHub tab verified. License version badge updates on /pull-scaffold runs." },
+    { "version": "2.5.4", "date": "2026-07-09", "summary": "GitHub tab hidden on installed copies via isOwner gate (GLIDEOS_ACCESS_TOKEN present). /update pings license endpoint after run." },
+    { "version": "2.5.3", "date": "2026-07-08", "summary": "Installer-proxied /update — no PAT required." },
+    { "version": "2.5.2", "date": "2026-07-01", "summary": "Two-repo GitHub split. Install doc + manifest served from public repo." },
+    { "version": "2.5.1", "date": "2026-06-30", "summary": "Phase 5 — Admin tab renamed to GitHub." },
+    { "version": "2.5.0", "date": "2026-06-30", "summary": "Phase 4 — AI/Models wizard." },
+    { "version": "2.4.2", "date": "2026-06-30", "summary": "Phase 3 — Default vs Expert install mode." },
+    { "version": "2.4.1", "date": "2026-06-29", "summary": "Phase 2 — real-time install progress." },
+    { "version": "2.4.0", "date": "2026-06-29", "summary": "Phase 1 — Setup checklist rail." },
+    { "version": "2.3.2", "date": "2026-06-29", "summary": "Phase 0 — project-level licensing." },
+    { "version": "2.3.1", "date": "2026-06-29", "summary": "Architectural correction for preview proxy — same-origin always." },
+    { "version": "2.2.1", "date": "2026-06-29", "summary": "Three-layer orientation mechanism." },
+    { "version": "2.2.0", "date": "2026-06-28", "summary": "Data-driven target-app routing + install-doc rewrite." },
+    { "version": "2.1.0", "date": "2026-06-28", "summary": "Public installer split-out." },
+    { "version": "2.0.0", "date": "2026-06-28", "summary": "Install system." },
+    { "version": "1.9.0", "date": "2026-06-17", "summary": "Generic blank-slate install." },
+    { "version": "1.8.0", "date": "2026-06-14", "summary": "Initial GitHub release." }
   ]
 }
