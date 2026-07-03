@@ -1080,6 +1080,28 @@ WHERE org_id = 'default' AND item_key = 'workbench_deployed';
 
 ---
 
+## Delivering files (chunked assembly + hash verification)
+
+Applies to every file in `manifest.app_files` (and `manifest.files`). Some source files (e.g. `LayoutCanvas.tsx`, `source-bundle-3.ts`) exceed what a single fetch/write round-trip can reliably move — this procedure handles any file size with byte-exact verification.
+
+1. **Fetch the hash manifest.** Alongside `manifest.json`, fetch `manifest-hashes.json` from the same public raw URL. It has the shape `{ "version": "...", "files": { "<path>": "<sha256 hex>", ... } }` — one entry per `app_files` path.
+
+2. **Deliver each file.**
+   - **Small files (≤ ~15KB):** fetch the whole file body in one request and `file_write` it directly to `dest`.
+   - **Large files (> ~15KB):** fetch in ~15KB pieces (the scaffold proxy supports ranged/offset fetches; pieces are sized to fit comfortably under the sandbox's ~24KB per-call result cap):
+     1. `file_write` the first piece to `dest` (creates the file).
+     2. For each subsequent piece, `file_edit`-append it: pick a short anchor string from the **current end of the file already written** (unique within the file — if it matches more than once, extend the anchor with more trailing context until it's unique), and insert the new piece immediately after that anchor.
+     3. Repeat until all pieces are written.
+
+3. **Verify after every file.** Re-read the full file you just wrote, compute its sha256, and compare to the value in `manifest-hashes.json` for that path.
+   - **Match:** continue to the next file.
+   - **Mismatch (1st time):** delete the file and rewrite it once from scratch (repeat step 2).
+   - **Mismatch (2nd time, same file):** STOP. Report the file path and both hashes (expected from `manifest-hashes.json`, actual computed) verbatim. Do not proceed past a file that has failed verification twice.
+
+**Sandbox note:** shell/bash access cannot write into `/project` — it's platform-denied. Only `file_write` and `file_edit` reach the running workspace. Do not attempt to script this delivery with bash file writes.
+
+---
+
 ## Step 5 — Connect the target app
 
 Store the target app URL and name in the database:
