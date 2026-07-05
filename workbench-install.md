@@ -1,4 +1,4 @@
-# Design Workbench v2.5.3 — Bootstrap Install
+# Design Workbench v2.7.0 — Bootstrap Install
 
 The Design Workbench is a visual tool for building and iterating on GlideOS apps without writing code. It provides a canvas interface to inspect and style elements, an AI-powered instruction queue, workflow automation, appearance controls, and full build history. This install procedure sets it up in your project and connects it to one of your deployed apps.
 
@@ -486,6 +486,143 @@ CREATE TABLE IF NOT EXISTS design_agent_bridge_tokens (
   revoked BOOLEAN DEFAULT false
 );
 ```
+
+### Console verify shadow row (Gap #2, workbench-side)
+
+This is the WORKBENCH'S OWN copy of `design_console_actions` — a local UI
+shadow row so `/app-api/console/action/:id` and
+`/app-api/console/action/by-key/:actionKey` have something to poll. It is NOT
+the canonical verify row; the installer (separate Neon DB, see below) owns
+`expected_hashes` and the verdict.
+
+```sql
+CREATE TABLE IF NOT EXISTS design_console_actions (
+  id BIGSERIAL PRIMARY KEY,
+  action_key TEXT UNIQUE NOT NULL,
+  org_id TEXT NOT NULL DEFAULT 'default',
+  project_id TEXT,
+  kind TEXT NOT NULL DEFAULT 'update',
+  command TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  base_hashes JSONB DEFAULT '{}'::jsonb,
+  expected_hashes JSONB DEFAULT '{}'::jsonb,
+  observed_hashes JSONB DEFAULT '{}'::jsonb,
+  token_hash TEXT,
+  token_status TEXT DEFAULT 'active',
+  token_expires_at TIMESTAMPTZ,
+  instruction_ids BIGINT[],
+  error TEXT,
+  created_by TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+### Installer-side console verify table (MANUAL, out-of-band — Gap #2 REV7)
+
+The public installer app (`workbench-install.glideapps.dev`) runs on a
+**SEPARATE Neon database** from every installed workbench. The `/build`
+agent cannot reach it with `db_execute` — this table must be created once, by
+hand, against the INSTALLER's own DB (not the workbench's). It is the
+CANONICAL verify row: the installer self-sources `expected_hashes` from bytes
+it serves via its scaffold proxy (Gap #2 REV7 — no key, no push; see
+`docs/plans/2026-07-04-rev7-console-verify.md`).
+
+```sql
+CREATE TABLE IF NOT EXISTS design_console_actions (
+  id BIGSERIAL PRIMARY KEY,
+  action_key TEXT UNIQUE NOT NULL,
+  org_id TEXT NOT NULL DEFAULT 'default',
+  project_id TEXT,
+  kind TEXT NOT NULL DEFAULT 'update',
+  command TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  base_hashes JSONB DEFAULT '{}'::jsonb,
+  expected_hashes JSONB DEFAULT '{}'::jsonb,
+  observed_hashes JSONB DEFAULT '{}'::jsonb,
+  token_hash TEXT,
+  token_status TEXT DEFAULT 'active',
+  token_expires_at TIMESTAMPTZ,
+  blob_keys JSONB DEFAULT '[]'::jsonb,
+  error TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE design_agent_bridge_tokens ADD COLUMN IF NOT EXISTS org_id TEXT NOT NULL DEFAULT 'default';
+```
+
+### C3 auto-gate tables (Gap #2 REV7, §10.2 — INSTALLER Neon, MANUAL out-of-band, run ONCE)
+
+These live on the **INSTALLER's** Neon DB alongside the installer-side
+`design_console_actions` above — NOT the workbench's. The installer (not the
+`/build` agent) triggers the off-platform GitHub Action, owns the verdict row,
+and receives the GHA callback. `target_hash` + `prod_url` are release-recorded
+from the public manifest, NEVER agent-supplied; `callback_nonce` is
+installer-minted and echoed by the GHA on callback (two-factor with the
+`C3_CALLBACK_SECRET` env). The agent may only READ the verdict via
+`/console/c3/status` to relay it — it never writes verdict, so it cannot
+fabricate a pass.
+
+```sql
+CREATE TABLE IF NOT EXISTS design_c3_verdicts (
+  id BIGSERIAL PRIMARY KEY,
+  action_key TEXT NOT NULL,
+  org_id TEXT NOT NULL DEFAULT 'default',
+  target_hash TEXT NOT NULL,
+  prod_url TEXT NOT NULL,
+  gh_run_id BIGINT,
+  verdict TEXT NOT NULL DEFAULT 'pending',  -- pending|pass|fail|error|timeout
+  observed_hash TEXT,
+  attempts INT NOT NULL DEFAULT 0,
+  callback_nonce TEXT NOT NULL,
+  error TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (action_key, org_id)
+);
+```
+
+```sql
+-- design_gha_rl — atomic fixed-window rate limiter for the two GHA-triggering
+-- endpoints. One guarded upsert per call (ON CONFLICT DO UPDATE ... WHERE hits
+-- < limit) increments only if under cap, so concurrent callers cannot overshoot
+-- (no count-then-insert race). Buckets:
+--   • update/begin — per-(org_id, project_id), hourly (headers present here).
+--   • c3/trigger   — GLOBAL (org_id/project_id collapsed to '*'), daily; the
+--     true spend backstop, since c3/trigger carries only actionKey + token.
+-- The worker self-heals this schema on undefined_table (so a code deploy before
+-- this migration cannot wedge updates at 503) and opportunistically prunes
+-- buckets older than 2 days. The PK makes every check a point-write, not a scan.
+CREATE TABLE IF NOT EXISTS design_gha_rl (
+  endpoint   TEXT NOT NULL CHECK (endpoint IN ('update/begin','c3/trigger')),
+  org_id     TEXT NOT NULL DEFAULT '*',
+  project_id TEXT NOT NULL DEFAULT '*',
+  bucket     TIMESTAMPTZ NOT NULL,
+  hits       INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (endpoint, org_id, project_id, bucket)
+);
+-- Supports the worker's opportunistic prune (WHERE bucket < …); the PK does not.
+CREATE INDEX IF NOT EXISTS design_gha_rl_bucket_idx ON design_gha_rl (bucket);
+```
+
+### Installer secrets for the C3 auto-gate (§10.5 — set once on the INSTALLER app)
+
+The installer app needs two secrets for the C3 auto-gate. Set them on the
+`design-workbench-installer` app (NOT this project), and set the two GHA repo
+secrets on the PRIVATE repo:
+
+- `C3_GH_PAT` (installer env) — a **fine-grained** GitHub PAT: single repo
+  `bschonbrun/GlideOS-Design-Workbench`, **Actions: Read and write** only, no
+  contents scope. Narrower than `GLIDEOS_ACCESS_TOKEN`. Used only to
+  `workflow_dispatch` the deploy-fingerprint-check workflow.
+- `C3_CALLBACK_SECRET` (installer env AND GitHub repo secret) — a random shared
+  secret. The GHA presents it as `x-c3-callback-token`; the installer
+  constant-time-compares it (with the per-run `callback_nonce` as second factor)
+  before accepting a verdict callback.
+- `C3_ALLOWED_HOST` (GitHub repo secret) — the exact production host of the
+  workbench (host only, no scheme/path). The workflow rejects any `prod_url`
+  whose host differs (fail-closed positive allowlist, B4).
 
 ### Admin + install gating tables
 
@@ -1155,8 +1292,8 @@ ON CONFLICT (org_id, name) DO NOTHING;
 INSERT INTO design_commands (org_id, name, aliases, description, steps, is_system) VALUES
 ('default', '/pull-scaffold',
  '{"/update", "/sync"}',
- 'Sync local workspace with the latest scaffold from the installer proxy (fingerprinted). NETWORK CALL REQUIRED — do not short-circuit.',
- '["Call auth_whoami to get orgId and projectId. Store as installer_org_id and installer_project_id.", "Then use the javascript tool to fetch the manifest: fetch(\"https://workbench-install.glideapps.dev/app-api/manifest?t=\" + Date.now(), { headers: { \"x-wb-org-id\": \"{installer_org_id}\", \"x-wb-project-id\": \"{installer_project_id}\", \"Cache-Control\": \"no-cache\" } }). Parse JSON. Store manifest.version and manifest.updated_at. If you cannot produce both from a LIVE fetch, stop and report which step failed.", "SELECT scaffold_version FROM design_orgs WHERE id = ''default''. Compare to manifest.version from your live fetch.", "If versions match: ping license via javascript fetch: GET https://workbench-install.glideapps.dev/app-api/license/check?version={scaffold_version} with headers x-wb-org-id, x-wb-project-id. Reply: Already on v{version} — nothing to update. (manifest.updated_at = {manifest.updated_at}) and stop.", "If newer: show changelog entries. Ask user to confirm before proceeding.", "On confirmation: for each file in manifest.files and manifest.app_files, javascript fetch from https://workbench-install.glideapps.dev/app-api/scaffold/{path} with headers x-wb-org-id, x-wb-project-id, x-wb-email and overwrite with file_write. Skip AGENTS.md and PROJECT_NOTES.md.", "UPDATE design_orgs SET scaffold_version = ''{manifest.version}'' WHERE id = ''default''.", "Ping license with new version via javascript fetch: GET https://workbench-install.glideapps.dev/app-api/license/check?version={manifest.version} with headers x-wb-org-id, x-wb-project-id.", "Call update_preview for design-workbench only.", "Your reply MUST end with: (manifest.updated_at = {manifest.updated_at}). If you cannot produce this from your live fetch, do NOT fabricate it — report which step failed."]'::jsonb,
+ 'Sync local workspace with the latest scaffold from the installer proxy, with installer-owned completeness + live-version verification before reporting success. NETWORK CALL REQUIRED — do not short-circuit.',
+ '["Call auth_whoami to get orgId and projectId. Store as installer_org_id and installer_project_id.", "Then use the javascript tool to fetch the manifest: fetch(\"https://workbench-install.glideapps.dev/app-api/manifest?t=\" + Date.now(), { headers: { \"x-wb-org-id\": \"{installer_org_id}\", \"x-wb-project-id\": \"{installer_project_id}\", \"Cache-Control\": \"no-cache\" } }). Parse JSON. Store manifest.version and manifest.updated_at. If you cannot produce both from a LIVE fetch, stop and report which step failed.", "SELECT scaffold_version FROM design_orgs WHERE id = ''default''. Compare to manifest.version from your live fetch.", "If versions match: ping license via javascript fetch: GET https://workbench-install.glideapps.dev/app-api/license/check?version={scaffold_version} with headers x-wb-org-id, x-wb-project-id. Reply: Already on v{version} — nothing to update. (manifest.updated_at = {manifest.updated_at}) and stop.", "If newer: show changelog entries. Ask user to confirm before proceeding.", "On confirmation, BEGIN the verified update: generate a fresh actionKey = a UUID (crypto.randomUUID via javascript). POST { actionKey } to https://workbench-install.glideapps.dev/app-api/console/update/begin with headers x-wb-org-id: installer_org_id, x-wb-project-id: installer_project_id. The installer license-checks the project, records the FULL pinned expected-hash set for this version server-side, and returns { token, expectedCount }. Store token as verifyToken and actionKey. Do NOT proceed if this returns non-200 — the installer owns the expected set; there is no local fallback.", "For each file in manifest.files and manifest.app_files, javascript fetch from https://workbench-install.glideapps.dev/app-api/scaffold/{path} with headers x-wb-org-id, x-wb-project-id, x-wb-email, x-wb-action-key: {actionKey} and overwrite with file_write. Skip AGENTS.md and PROJECT_NOTES.md.", "UPDATE design_orgs SET scaffold_version = ''{manifest.version}'' WHERE id = ''default''.", "Ping license with new version via javascript fetch: GET https://workbench-install.glideapps.dev/app-api/license/check?version={manifest.version} with headers x-wb-org-id, x-wb-project-id.", "Call update_preview for design-workbench. If auto_publish is on, app_publish design-workbench so C3 can read the LIVE production version.", "Run Part C validation. (C2 sweep) Re-read every file just written and POST { actionKey, observed: {path: sha256} } to https://workbench-install.glideapps.dev/app-api/console/sweep with header Authorization: Bearer {verifyToken}. The installer compares your reported hashes to the FULL pinned manifest set and drives the action to done (complete) or needs_attention (incomplete/mismatch). Record the verdict; do NOT assume success.", "(C3 live-version gate) POST { actionKey } to https://workbench-install.glideapps.dev/app-api/console/c3/trigger with header Authorization: Bearer {verifyToken}. This tells the INSTALLER to dispatch the off-platform GitHub Action that reads the edge-stamped x-g3-app-version off the live prod 302. You cannot trigger, read, or write this verdict yourself — you only relay it. Then poll GET https://workbench-install.glideapps.dev/app-api/console/c3/status?actionKey={actionKey} with header Authorization: Bearer {verifyToken} every 10 seconds for up to 120 seconds (12 tries). Stop polling once verdict is pass/fail/error.", "Combined terminal gate: reply ''✅ Updated to v{manifest.version}. (manifest.updated_at = {manifest.updated_at})'' ONLY IF the sweep verdict was complete AND the c3/status verdict is pass. If the sweep was incomplete/mismatch, report exactly which files were missing/bad and do NOT claim done. If c3 is fail/error/timeout, report ''Update NOT verified — deploy-fingerprint check returned {verdict}; the live version does not match the target'' and do NOT claim done. Never report success on your own judgement — the installer owns both verdicts; you only relay them. If you cannot produce manifest.updated_at from your live fetch, do NOT fabricate it — report which step failed."]'::jsonb,
  true)
 ON CONFLICT (org_id, name) DO UPDATE SET name = EXCLUDED.name, aliases = EXCLUDED.aliases, steps = EXCLUDED.steps, description = EXCLUDED.description, updated_at = now();
 ```
