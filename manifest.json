@@ -4,7 +4,7 @@
   "updated_at": "2026-07-05",
   "description": "CarboNet Design Workbench — scaffold manifest",
   "prod_url": "https://p8056f420-design-workbench--bill.glideos.app",
-  "publish_hash": null,
+  "publish_hash": "19b0e23d",
   "app_files": [
     { "path": "package.json", "dest": "package.json", "description": "Shared npm dependencies" },
 
