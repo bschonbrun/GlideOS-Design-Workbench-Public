@@ -1149,29 +1149,65 @@ WHERE org_id = 'default' AND item_key = 'db_schema';
 
 ---
 
-## Step 3 — Fetch scaffold files
+## Step 3 — Write the agent docs (inline — NOT via the proxy)
 
-Iterate over **every** entry in `manifest.files` (do not assume the list — read it from the manifest you fetched in Step 1). For each entry, fetch it through the Workbench installer and write the response body to its `dest`:
+The scaffold proxy only serves **pinned** paths (the keys in `manifest-hashes.json`, i.e. `manifest.app_files`). The agent docs are per-install and NOT pinned, so the proxy returns **400** for them — do not fetch them. Write each one directly with `file_write`, using the exact content below.
 
-```
-GET https://workbench-install.glideapps.dev/app-api/scaffold/{entry.path}
-x-wb-org-id:     {installer_org_id}
-x-wb-project-id: {installer_project_id}
-x-wb-email:      {installer_email}
-```
+**3a. `AGENTS.md`** — the thin STEP 0 pointer. `file_write` this verbatim:
 
-**If the response is 403:** The installer returned a license error. This means this project hasn't been licensed yet. The request has been automatically submitted — tell the user: "⏳ A license request has been submitted to the Workbench owner. You'll receive an email when it's approved. Once approved, re-run this install doc to continue." Then stop.
+~~~md
+# Design Workbench — Agent Rules
 
-The current v2.4.2 manifest's `files` array includes:
-- `AGENTS.md`, `PROJECT_NOTES.md`, `PREFERENCES.md` — agent docs at workspace root
-- `github/manifest.json`, `github/workbench-install.md` — the manifest + this doc, mirrored into the workspace
-- `github/scaffold/auth.d.ts` → `apps/design-workbench/auth.d.ts` — auth type declarations
-- `github/scaffold/{Button,Dialog,Input,Label,Select,Tabs}.tsx` → `apps/design-workbench/client/components/*.tsx` — Glide UI primitives for the Workbench UI. `Dialog.tsx` exports `DialogHeader`, `DialogTitle`, `DialogFooter` (LayoutCanvas + SetupModal import these — verify on disk after fetch)
-- `github/scaffold/Nav.tsx`, `github/scaffold/Toast.tsx` → `apps/design-workbench/preview/components/*.tsx` — primitives used by the preview iframe shell. `Toast.tsx` exports `Toaster`
-- `github/scaffold/proxy.ts` → `apps/design-workbench/preview/proxy.ts` — preview proxy module (`apiUrl`, `apiFetch`, `initProxyConfig`). Lives in its own module so preview pages can import it without creating a circular import with App.tsx
-- `github/scaffold/preview-App.template.tsx` → `apps/design-workbench/preview/App.tsx` — canonical preview shell (Step 7d patches target-specific bits only)
+## STEP 0 — before anything else, every session
 
-If any fetch returns 403, stop — approval may have lapsed.
+1. **`file_read` `agents-core.md` and obey ALL of it.** It is the source of truth for how this Workbench behaves — session start, the per-turn turn counter, the pending-build check, the update check, and the slash-command loader all live there. Do this before responding, even to a slash command.
+2. **Load your slash commands** — even if step 1 fails: `SELECT name, aliases, description, steps FROM design_commands WHERE org_id = 'default' ORDER BY created_at ASC`. Each row is a live command. This guarantees `/repair`, `/update`, `/build` work even if `agents-core.md` is missing.
+3. Read `PROJECT_NOTES.md` for project memory.
+
+If `agents-core.md` is missing: still do step 2, then tell the user "⚠️ Workbench rules missing — type `/repair` to restore them."
+
+Do not copy the core rules here — keep this thin so `/update` never rewrites AGENTS.md. Add PROJECT-SPECIFIC rules below the marker.
+
+---
+
+<!-- ▼▼▼ PROJECT-SPECIFIC RULES BELOW THIS LINE — never touched by /update. Append freely. ▼▼▼ -->
+~~~
+
+**3b. `PREFERENCES.md`** — default preferences. `file_write` this verbatim (the DB `design_preferences` row is authoritative; this is the fallback):
+
+~~~md
+# Design Workbench — Agent Preferences
+
+Read at session start. The DB `design_preferences` row overrides this file.
+
+## Communication style
+**Reply length:** balanced (~120 words)
+**Model effort:** balanced
+**Explanation verbosity:** normal
+
+## User profile
+**Name:** (not set)
+**Role:** (not set)
+**Technical level:** non-technical
+~~~
+
+**3c. `PROJECT_NOTES.md`** — starter notes. `file_write` this verbatim; you maintain this file going forward (a fresh install starts clean — it does NOT inherit any other project's notes):
+
+~~~md
+# Project Notes
+
+_Project memory, architecture decisions, and build history. Update this file freely as the project grows._
+
+## Bootstrap
+Installed via the Design Workbench installer. Agent rules live in `agents-core.md` (loaded via the STEP 0 pointer in AGENTS.md). Slash commands live in the `design_commands` table.
+
+## Build history
+_(empty — first install)_
+~~~
+
+**3d. `github/manifest.json`** — `file_write` the manifest JSON you already fetched in Step 1 to `github/manifest.json` (the GitHub-push panel reads it). Do not fetch it from the proxy.
+
+`agents-core.md` (the managed rulebook) is an `app_file` — it is delivered with the rest of the app source in Step 4 via the pinned proxy, not here.
 
 ---
 
@@ -1186,28 +1222,11 @@ x-wb-project-id: {installer_project_id}
 x-wb-email:      {installer_email}
 ```
 
-Write the response body to `{dest}`.
+Deliver **every** entry in `manifest.app_files` using the **"Delivering files"** procedure below (client-side chunked fetch + per-file sha256 verify against `manifest-hashes.json`). This includes the large `source-bundle.ts` / `-2` / `-3` / `-4` bundles and `agents-core.md` — they are committed, pinned, and served, so **deliver them for real**.
 
-**Special case — source bundles:** Files named `source-bundle*.ts` will return 404 — do not fetch them. Instead, create three empty files:
+> **Do NOT stub the source-bundles empty**, and **do NOT single-fetch** a large file. `admin.ts` and `workflows.ts` import the bundles at compile time; shipping them empty or truncated leaves the app without its own source (the "backendless install" the v2.6.0 bundle regeneration was meant to fix). Chunk every file > 15000 bytes.
 
-```ts
-// apps/design-workbench/source-bundle.ts
-export const BUNDLED_SOURCE_FILES = {};
-```
-
-```ts
-// apps/design-workbench/source-bundle-2.ts
-export const BUNDLED_SOURCE_FILES_2 = {};
-```
-
-```ts
-// apps/design-workbench/source-bundle-3.ts
-export const BUNDLED_SOURCE_FILES_3 = {};
-```
-
-The `/build` command will regenerate them when the Workbench is deployed.
-
-After all scaffold files are written, mark the workbench_deployed item as in-progress:
+After all app source files are written and verified, mark the workbench_deployed item as in-progress:
 
 ```sql
 UPDATE design_setup_items
@@ -1217,25 +1236,37 @@ WHERE org_id = 'default' AND item_key = 'workbench_deployed';
 
 ---
 
-## Delivering files (chunked assembly + hash verification)
+## Delivering files (client-side chunked assembly + hash verification)
 
-Applies to every file in `manifest.app_files` (and `manifest.files`). Some source files (e.g. `LayoutCanvas.tsx`, `source-bundle-3.ts`) exceed what a single fetch/write round-trip can reliably move — this procedure handles any file size with byte-exact verification.
+Applies to **every** file you write from the scaffold proxy — all of `manifest.app_files`, and the docs in Step 3. Large source files (`source-bundle*.ts`, `LayoutCanvas.tsx`) are far bigger than one fetch result can carry, so deliver them in **client-side** slices. This procedure moves any file size byte-exact.
 
-1. **Fetch the hash manifest.** Alongside `manifest.json`, fetch `manifest-hashes.json` from the same public raw URL. It has the shape `{ "version": "...", "files": { "<path>": "<sha256 hex>", ... } }` — one entry per `app_files` path.
+> **The scaffold proxy returns the WHOLE file.** It does **not** honour any `?offset`/`?length` query — you must slice on the client with `Uint8Array`. (An earlier version of this doc claimed ranged fetches work; they do not.)
 
-2. **Deliver each file.**
-   - **Small files (≤ ~15KB):** fetch the whole file body in one request and `file_write` it directly to `dest`.
-   - **Large files (> ~15KB):** fetch in ~15KB pieces (the scaffold proxy supports ranged/offset fetches; pieces are sized to fit comfortably under the sandbox's ~24KB per-call result cap):
-     1. `file_write` the first piece to `dest` (creates the file).
-     2. For each subsequent piece, `file_edit`-append it: pick a short anchor string from the **current end of the file already written** (unique within the file — if it matches more than once, extend the anchor with more trailing context until it's unique), and insert the new piece immediately after that anchor.
-     3. Repeat until all pieces are written.
+1. **Fetch the hash manifest.** Alongside `manifest.json`, fetch `manifest-hashes.json` from the same public raw URL. Shape: `{ "version": "...", "commit": "...", "files": { "<path>": "<sha256 hex>", ... } }` — one entry per `app_files` path.
 
-3. **Verify after every file.** Re-read the full file you just wrote, compute its sha256, and compare to the value in `manifest-hashes.json` for that path.
-   - **Match:** continue to the next file.
-   - **Mismatch (1st time):** delete the file and rewrite it once from scratch (repeat step 2).
-   - **Mismatch (2nd time, same file):** STOP. Report the file path and both hashes (expected from `manifest-hashes.json`, actual computed) verbatim. Do not proceed past a file that has failed verification twice.
+2. **Deliver each file `dest`** (headers on every fetch: `x-wb-org-id`, `x-wb-project-id`, `x-wb-email`, `Cache-Control: no-cache`):
+   - First, get the total size with the `javascript` tool:
+     ```js
+     const r = await fetch("https://workbench-install.glideapps.dev/app-api/scaffold/{path}", { headers });
+     const buf = new Uint8Array(await r.arrayBuffer());
+     return { total: buf.length };
+     ```
+   - **Small file (total ≤ 15000 bytes):** fetch once more, `return new TextDecoder().decode(buf)`, and `file_write` it to `dest`.
+   - **Large file (total > 15000):** loop with `START` (from 0):
+     1. Compute `END`: tentatively `Math.min(START + 15000, total)`. If `END < total`, walk `END` back to just after the **last `\n` at or before END** — every cut lands on a line boundary, so no multibyte character is ever split. **If there is no `\n` in `[START, END]`** (a single line longer than 15000 bytes), instead set `END` to the **last valid UTF-8 codepoint boundary ≤ START+15000** (never split a multibyte char).
+     2. `javascript`: `const buf = new Uint8Array(await (await fetch(url,{headers})).arrayBuffer()); return { text: new TextDecoder().decode(buf.slice(START, END)), end: END };`
+     3. If `START === 0`: `file_write` the returned `text` to `dest` (creates/overwrites). Else: `file_edit`-append `text` to the end of the file (anchor on the last ~40 characters currently in the file).
+     4. `START = end`; repeat until `END === total`.
 
-**Sandbox note:** shell/bash access cannot write into `/project` — it's platform-denied. Only `file_write` and `file_edit` reach the running workspace. Do not attempt to script this delivery with bash file writes.
+3. **Verify after every file.** Re-read the whole file, compute sha256, compare to `manifest-hashes.files[path]`. **`file_read` caps at ~200KB**, so for any file larger than that (the `source-bundle*.ts` and `LayoutCanvas.tsx`), read it in successive line-range chunks (lines 1–2000, 2001–4000, …) until a read returns fewer lines than requested, concatenate the chunks in order, then sha256 the concatenation (the same read-in-chunks method `/cache-files` uses).
+   - **Match:** next file.
+   - **Mismatch (1st):** re-deliver the whole file from `START = 0`. The `file_write` overwrites, discarding any corrupt/mis-anchored tail — do **not** append onto the bad file.
+   - **Mismatch (2nd, same file):** STOP. Report the path + both hashes (expected from `manifest-hashes.json`, actual) verbatim. Do not proceed past a file that failed twice.
+
+**Notes:**
+- Slice client-side, always on a line (or UTF-8 codepoint) boundary — the proxy won't range-fetch for you.
+- `manifest-hashes.json` hashes are computed on the delivered (LF) bytes. If a file fails verification on every retry, it may contain CR bytes the workspace strips — the 2-strike STOP surfaces it rather than looping forever.
+- **Sandbox:** shell/bash cannot write into `/project`. Only `file_write` and `file_edit` reach the workspace — never script delivery with bash.
 
 ---
 
@@ -1293,7 +1324,23 @@ INSERT INTO design_commands (org_id, name, aliases, description, steps, is_syste
 ('default', '/pull-scaffold',
  '{"/update", "/sync"}',
  'Sync local workspace with the latest scaffold from the installer proxy, with installer-owned completeness + live-version verification before reporting success. NETWORK CALL REQUIRED — do not short-circuit.',
- '["Call auth_whoami to get orgId and projectId. Store as installer_org_id and installer_project_id.", "Then use the javascript tool to fetch the manifest: fetch(\"https://workbench-install.glideapps.dev/app-api/manifest?t=\" + Date.now(), { headers: { \"x-wb-org-id\": \"{installer_org_id}\", \"x-wb-project-id\": \"{installer_project_id}\", \"Cache-Control\": \"no-cache\" } }). Parse JSON. Store manifest.version and manifest.updated_at. If you cannot produce both from a LIVE fetch, stop and report which step failed.", "SELECT scaffold_version FROM design_orgs WHERE id = ''default''. Compare to manifest.version from your live fetch.", "If versions match: ping license via javascript fetch: GET https://workbench-install.glideapps.dev/app-api/license/check?version={scaffold_version} with headers x-wb-org-id, x-wb-project-id. Reply: Already on v{version} — nothing to update. (manifest.updated_at = {manifest.updated_at}) and stop.", "If newer: show changelog entries. Ask user to confirm before proceeding.", "On confirmation, BEGIN the verified update: generate a fresh actionKey = a UUID (crypto.randomUUID via javascript). POST { actionKey } to https://workbench-install.glideapps.dev/app-api/console/update/begin with headers x-wb-org-id: installer_org_id, x-wb-project-id: installer_project_id. The installer license-checks the project, records the FULL pinned expected-hash set for this version server-side, and returns { token, expectedCount }. Store token as verifyToken and actionKey. Do NOT proceed if this returns non-200 — the installer owns the expected set; there is no local fallback.", "For each file in manifest.files and manifest.app_files, javascript fetch from https://workbench-install.glideapps.dev/app-api/scaffold/{path} with headers x-wb-org-id, x-wb-project-id, x-wb-email, x-wb-action-key: {actionKey} and overwrite with file_write. Skip AGENTS.md and PROJECT_NOTES.md.", "UPDATE design_orgs SET scaffold_version = ''{manifest.version}'' WHERE id = ''default''.", "Ping license with new version via javascript fetch: GET https://workbench-install.glideapps.dev/app-api/license/check?version={manifest.version} with headers x-wb-org-id, x-wb-project-id.", "Call update_preview for design-workbench. If auto_publish is on, app_publish design-workbench so C3 can read the LIVE production version.", "Run Part C validation. (C2 sweep) Re-read every file just written and POST { actionKey, observed: {path: sha256} } to https://workbench-install.glideapps.dev/app-api/console/sweep with header Authorization: Bearer {verifyToken}. The installer compares your reported hashes to the FULL pinned manifest set and drives the action to done (complete) or needs_attention (incomplete/mismatch). Record the verdict; do NOT assume success.", "(C3 live-version gate) POST { actionKey } to https://workbench-install.glideapps.dev/app-api/console/c3/trigger with header Authorization: Bearer {verifyToken}. This tells the INSTALLER to dispatch the off-platform GitHub Action that reads the edge-stamped x-g3-app-version off the live prod 302. You cannot trigger, read, or write this verdict yourself — you only relay it. Then poll GET https://workbench-install.glideapps.dev/app-api/console/c3/status?actionKey={actionKey} with header Authorization: Bearer {verifyToken} every 10 seconds for up to 120 seconds (12 tries). Stop polling once verdict is pass/fail/error.", "Combined terminal gate: reply ''✅ Updated to v{manifest.version}. (manifest.updated_at = {manifest.updated_at})'' ONLY IF the sweep verdict was complete AND the c3/status verdict is pass. If the sweep was incomplete/mismatch, report exactly which files were missing/bad and do NOT claim done. If c3 is fail/error/timeout, report ''Update NOT verified — deploy-fingerprint check returned {verdict}; the live version does not match the target'' and do NOT claim done. Never report success on your own judgement — the installer owns both verdicts; you only relay them. If you cannot produce manifest.updated_at from your live fetch, do NOT fabricate it — report which step failed."]'::jsonb,
+ '["Call auth_whoami to get orgId and projectId. Store as installer_org_id and installer_project_id.", "Then use the javascript tool to fetch the manifest: fetch(\"https://workbench-install.glideapps.dev/app-api/manifest?t=\" + Date.now(), { headers: { \"x-wb-org-id\": \"{installer_org_id}\", \"x-wb-project-id\": \"{installer_project_id}\", \"Cache-Control\": \"no-cache\" } }). Parse JSON. Store manifest.version and manifest.updated_at. If you cannot produce both from a LIVE fetch, stop and report which step failed.", "SELECT scaffold_version FROM design_orgs WHERE id = ''default''. Compare to manifest.version from your live fetch.", "If versions match: ping license via javascript fetch: GET https://workbench-install.glideapps.dev/app-api/license/check?version={scaffold_version} with headers x-wb-org-id, x-wb-project-id. Reply: Already on v{version} — nothing to update. (manifest.updated_at = {manifest.updated_at}) and stop.", "If newer: show changelog entries. Ask user to confirm before proceeding.", "On confirmation, BEGIN the verified update: generate a fresh actionKey = a UUID (crypto.randomUUID via javascript). POST { actionKey } to https://workbench-install.glideapps.dev/app-api/console/update/begin with headers x-wb-org-id: installer_org_id, x-wb-project-id: installer_project_id. The installer license-checks the project, records the FULL pinned expected-hash set for this version server-side, and returns { token, expectedCount }. Store token as verifyToken and actionKey. Do NOT proceed if this returns non-200 — the installer owns the expected set; there is no local fallback.", "Fetch manifest-hashes.json from https://raw.githubusercontent.com/bschonbrun/GlideOS-Design-Workbench-Public/main/manifest-hashes.json (cache-bust with ?t= a timestamp). Then for each file in manifest.app_files ONLY (do NOT fetch manifest.files — those docs are not in the pinned set and will 400), deliver it CLIENT-SIDE CHUNKED: javascript fetch the whole file as a Uint8Array from https://workbench-install.glideapps.dev/app-api/scaffold/{path} with headers x-wb-org-id, x-wb-project-id, x-wb-email, x-wb-action-key: {actionKey}; if total bytes <= 15000, file_write the decoded text once; else slice into <=15000-byte pieces each cut on the last newline at or before the boundary (if a single line exceeds 15000 bytes, cut on the last valid UTF-8 codepoint boundary so no multibyte char is split), file_write piece 0 then file_edit-append each remaining piece; then re-read the whole file and sha256 it (file_read caps at ~200KB, so for a file larger than that read it in successive line-range chunks — lines 1-2000, 2001-4000, ... — until a read returns fewer lines than requested, concatenate in order, then sha256), and compare to manifest-hashes.files[{path}]. On mismatch, re-deliver the whole file from the start (the file_write overwrites any corrupt tail — never append onto a bad file); after a SECOND mismatch on the same file, STOP and report the path plus both hashes verbatim. This delivery includes agents-core.md (the managed rulebook lives in app_files and is overwritten wholesale). Never fetch or overwrite AGENTS.md, PROJECT_NOTES.md, or PREFERENCES.md — they are per-install and not in app_files. After the app_files are delivered, also file_write the manifest.json you fetched at the start of this run to github/manifest.json so the GitHub-push panel's copy stays current (it is not pinned, so write it directly — do not fetch it from the proxy).", "Do NOT write scaffold_version yet — the version bump happens ONLY after BOTH verification gates pass (final step). Proceed to deploy + verification.", "Ping license with new version via javascript fetch: GET https://workbench-install.glideapps.dev/app-api/license/check?version={manifest.version} with headers x-wb-org-id, x-wb-project-id.", "Call update_preview for design-workbench. If auto_publish is on, app_publish design-workbench so C3 can read the LIVE production version.", "Run Part C validation. (C2 sweep) Re-read every file just written and POST { actionKey, observed: {path: sha256} } to https://workbench-install.glideapps.dev/app-api/console/sweep with header Authorization: Bearer {verifyToken}. Compute each sha256 the SAME way as the delivery verify: for a file over ~200KB read it in successive line-range chunks and concatenate in order before hashing, so per-file verify and the sweep never disagree. If any single line exceeds the ~200KB read cap so the file cannot be range-read, STOP and report — do not guess a hash. The installer compares your reported hashes to the FULL pinned manifest set and drives the action to done (complete) or needs_attention (incomplete/mismatch). Record the verdict; do NOT assume success.", "(C3 live-version gate) POST { actionKey } to https://workbench-install.glideapps.dev/app-api/console/c3/trigger with header Authorization: Bearer {verifyToken}. This tells the INSTALLER to dispatch the off-platform GitHub Action that reads the edge-stamped x-g3-app-version off the live prod 302. You cannot trigger, read, or write this verdict yourself — you only relay it. Then poll GET https://workbench-install.glideapps.dev/app-api/console/c3/status?actionKey={actionKey} with header Authorization: Bearer {verifyToken} every 10 seconds for up to 120 seconds (12 tries). Stop polling once verdict is pass/fail/error.", "Combined terminal gate: ONLY IF the sweep verdict was complete AND the c3/status verdict is pass — FIRST run UPDATE design_orgs SET scaffold_version = ''{manifest.version}'' WHERE id = ''default'', THEN reply ''✅ Updated to v{manifest.version}. (manifest.updated_at = {manifest.updated_at})''. If the sweep was incomplete/mismatch, report exactly which files were missing/bad, do NOT write scaffold_version, and do NOT claim done. If c3 is fail/error/timeout, report ''Update NOT verified — deploy-fingerprint check returned {verdict}; the live version does not match the target'', do NOT write scaffold_version, and do NOT claim done. Never report success on your own judgement — the installer owns both verdicts; you only relay them. If you cannot produce manifest.updated_at from your live fetch, do NOT fabricate it — report which step failed."]'::jsonb,
+ true)
+ON CONFLICT (org_id, name) DO UPDATE SET name = EXCLUDED.name, aliases = EXCLUDED.aliases, steps = EXCLUDED.steps, description = EXCLUDED.description, updated_at = now();
+
+INSERT INTO design_commands (org_id, name, aliases, description, steps, is_system) VALUES
+('default', '/repair',
+ '{}',
+ 'Restore the Workbench agent rules — re-deliver agents-core.md and ensure AGENTS.md points to it. Use when the session-start canary reports the rules are missing.',
+ '["Call auth_whoami for orgId, projectId, and email. Store them.", "Re-deliver agents-core.md. Fetch manifest-hashes.json from https://raw.githubusercontent.com/bschonbrun/GlideOS-Design-Workbench-Public/main/manifest-hashes.json (cache-bust with ?t= a timestamp) and read the expected sha256 at files[''agents-core.md'']. Then javascript-fetch the whole file as a Uint8Array from https://workbench-install.glideapps.dev/app-api/scaffold/agents-core.md with headers x-wb-org-id, x-wb-project-id, x-wb-email. If total bytes <= 15000, file_write the decoded text; else deliver it in <=15000-byte pieces each cut on the last newline at or before the boundary (file_write piece 0, then file_edit-append each remaining piece). Re-read the file, sha256 it, and compare to the expected hash. On mismatch, re-deliver once from the start; if it still mismatches, STOP and report both hashes.", "Ensure AGENTS.md carries the CURRENT pointer — this also UPGRADES a stale one. Do NOT fetch AGENTS.md from the proxy (the proxy 400s unpinned paths). file_read AGENTS.md. If its top already loads slash commands (the STEP 0 text contains ''design_commands''), it is current — leave it unchanged. Otherwise install/upgrade the pointer WITHOUT losing project rules: if AGENTS.md contains a line with the text ''PROJECT-SPECIFIC RULES BELOW THIS LINE'', REPLACE everything ABOVE that line with the canonical block below (this keeps that marker line and everything beneath it). If there is no such marker line, PREPEND the canonical block to the very TOP and keep ALL existing content below it. Canonical block (write it exactly, decoding \n as real newlines):\n\n# Design Workbench — Agent Rules\n\n## STEP 0 — before anything else, every session\n1. file_read agents-core.md and obey ALL of it (session start, turn counter, build-check, update-check, command loader).\n2. Load your slash commands even if step 1 fails: SELECT name, aliases, description, steps FROM design_commands WHERE org_id = ''default'' ORDER BY created_at ASC.\n3. Read PROJECT_NOTES.md.\nIf agents-core.md is missing, still do step 2 then tell the user to type /repair.\n\n<!-- PROJECT-SPECIFIC RULES BELOW THIS LINE — never touched by /update. Append freely. -->\n\nNEVER delete anything below the marker line.", "Reply ''✅ Workbench rules restored — agents-core.md re-delivered'' (add '', AGENTS.md pointer re-inserted'' if you had to add it). Then file_read agents-core.md and follow it for the rest of the session."]'::jsonb,
+ true)
+ON CONFLICT (org_id, name) DO UPDATE SET name = EXCLUDED.name, aliases = EXCLUDED.aliases, steps = EXCLUDED.steps, description = EXCLUDED.description, updated_at = now();
+
+INSERT INTO design_commands (org_id, name, aliases, description, steps, is_system) VALUES
+('default', '/credit-check',
+ '{}',
+ 'Check GlideOS credit usage for this session.',
+ '["Call billing_lookup silently.", "Calculate credits used this session: credits_used_now minus sessionStartCreditsUsed (stored in memory at session start).", "Reply: ''Credits this session: {used} used / {remaining} remaining of {quota} total.''"]'::jsonb,
  true)
 ON CONFLICT (org_id, name) DO UPDATE SET name = EXCLUDED.name, aliases = EXCLUDED.aliases, steps = EXCLUDED.steps, description = EXCLUDED.description, updated_at = now();
 ```

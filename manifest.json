@@ -1,12 +1,13 @@
 {
-  "version": "2.7.0",
-  "commit": "90bce90f30ec5c9050159f4cd347bddf8acc1e26",
+  "version": "2.7.1",
+  "commit": "RELEASE_SET_BY_GEN_HASHES",
   "updated_at": "2026-07-05",
   "description": "CarboNet Design Workbench — scaffold manifest",
   "prod_url": "https://p8056f420-design-workbench--bill.glideos.app",
-  "publish_hash": "19b0e23d",
+  "publish_hash": null,
   "app_files": [
     { "path": "package.json", "dest": "package.json", "description": "Shared npm dependencies" },
+    { "path": "agents-core.md", "dest": "agents-core.md", "description": "Managed agent rulebook — the pointer in AGENTS.md loads this; /update overwrites it wholesale" },
 
     { "path": "apps/design-workbench/source-bundle.ts",   "dest": "apps/design-workbench/source-bundle.ts",   "description": "Source bundle part 1 — client/preview tsx (auto-generated)" },
     { "path": "apps/design-workbench/source-bundle-2.ts", "dest": "apps/design-workbench/source-bundle-2.ts", "description": "Source bundle part 2 — server.ts + routes/*.ts + docs (auto-generated)" },
@@ -50,20 +51,20 @@
     { "path": "apps/design-workbench/preview/App.tsx",               "dest": "apps/design-workbench/preview/App.tsx" },
     { "path": "apps/design-workbench/preview/proxy.ts",              "dest": "apps/design-workbench/preview/proxy.ts" },
     { "path": "apps/design-workbench/preview/components/Nav.tsx",    "dest": "apps/design-workbench/preview/components/Nav.tsx" },
+    { "path": "scaffold/Toast.tsx",   "dest": "apps/design-workbench/preview/components/Toast.tsx", "description": "Toaster/toast primitive — imported by preview/App.tsx (moved here from files; was unpinned)" },
     { "path": "apps/design-workbench/preview/pages/Dashboard.tsx",      "dest": "apps/design-workbench/preview/pages/Dashboard.tsx" },
     { "path": "apps/design-workbench/preview/pages/EquipmentList.tsx",  "dest": "apps/design-workbench/preview/pages/EquipmentList.tsx" },
     { "path": "apps/design-workbench/preview/pages/EquipmentDetail.tsx","dest": "apps/design-workbench/preview/pages/EquipmentDetail.tsx" },
     { "path": "apps/design-workbench/preview/pages/EquipmentNew.tsx",   "dest": "apps/design-workbench/preview/pages/EquipmentNew.tsx" }
   ],
   "files": [
-    { "path": "AGENTS.md", "dest": "AGENTS.md", "description": "Permanent agent behaviour rules (append-only)" },
+    { "path": "AGENTS.md", "dest": "AGENTS.md", "description": "Thin STEP 0 pointer to agents-core.md — written once at install, never overwritten by /update (project rules append below the pointer)" },
     { "path": "PROJECT_NOTES.md", "dest": "PROJECT_NOTES.md", "description": "Project memory, architecture, build history" },
     { "path": "PREFERENCES.md", "dest": "PREFERENCES.md", "description": "Agent communication preferences" },
-    { "path": "github/manifest.json", "dest": "github/manifest.json", "description": "Scaffold manifest" },
-    { "path": "github/workbench-install.md", "dest": "github/workbench-install.md", "description": "Bootstrap install instructions" },
-    { "path": "scaffold/Toast.tsx", "dest": "apps/design-workbench/preview/components/Toast.tsx" }
+    { "path": "github/manifest.json", "dest": "github/manifest.json", "description": "Scaffold manifest" }
   ],
   "changelog": [
+    { "version": "2.7.1", "date": "2026-07-05", "summary": "Delivery + agent-rules durability fix. (1) Large-file delivery on BOTH fresh install and /update now uses the proven CLIENT-SIDE line-boundary chunk loop (js Uint8Array slice → file_write chunk 0 → file_edit-append rest → per-file sha256 vs manifest-hashes; retry-from-chunk-0 on mismatch; UTF-8-boundary fallback for >15KB lines). Removes the false 'proxy supports ranged/offset fetch' install-prose claim and the single-fetch-and-overwrite /pull-scaffold step that silently truncated source-bundle*.ts. (2) Toast.tsx moved from files→app_files and pinned (was imported by preview/App.tsx but unpinned → broken preview on install). (3) AGENTS.md is now a thin STEP 0 pointer to the new managed agents-core.md rulebook; /update overwrites agents-core.md wholesale (no in-place fenced edit), and AGENTS.md is written once at install so project appends survive. Adds /repair + a session-start self-integrity canary; re-enables the session-start update-available check via the installer's public manifest. (4) /pull-scaffold delivers app_files ONLY (dropped the unpinned manifest.files docs loop → no more 400s); scaffold_version write moved to AFTER sweep=complete AND c3=pass. NOTE: commit + manifest-hashes are restamped by scripts/gen-manifest-hashes.mjs at release; publish_hash is set after the prod deploy (C3)." },
     { "version": "2.7.0", "date": "2026-07-05", "summary": "Gap #2 REV7 — console-verified /update + C3 live-version gate. Installer self-sources expected hashes (no seal key); scaffold proxy locked to an allowlist pinned at manifest-hashes.commit with server-side served-vs-pin verification; /update reseeded to fetch via the installer proxy, then gate 'done' on the installer-owned sweep (C2) AND off-platform GitHub-Action fingerprint check (C3) reading the edge-stamped x-g3-app-version. Version bumped to force the update to run on installs already labelled 2.6.0. manifest-hashes pinned to 90bce90 (bundles NOT regenerated this release; source-bundle-2.ts is 1 commit stale vs source — affects fresh-install /build reconstruction only, tracked separately)." },
     { "version": "2.6.0", "date": "2026-07-03", "summary": "Gap #1 fix — delivery kit reconstruction. Added real app_files array (was missing entirely) reflecting the M1 modular backend: server.ts + all 11 routes/*.ts (incl. console.ts/console-hash.ts), source-bundle*.ts, and full client/preview file set. Added scripts/generate-source-bundles.mjs (repo-side, deterministic, round-trip-verified, LF-only) so source-bundle*.ts are generated from main instead of hand-maintained; regenerated all three bundles to include the previously-missing modular routes (fixes fresh installs shipping a pre-M1 backendless app). Fixed design_file_cache DDL drift in github/workbench-install.md (path/content/updated_at + UNIQUE(org_id,path), plus design_orgs.proxy_paths heal) to match code." },
     { "version": "2.5.6", "date": "2026-07-01", "summary": "HOTFIX — /update renamed to /pull-scaffold with response fingerprinting and network-call gate. Agents were short-circuiting the multi-step /update command. Fix: (1) renamed primary command to /pull-scaffold; (2) hard-coded network gate at step 1 requiring javascript tool fetch; (3) fingerprint requirement — reply must include manifest.updated_at verbatim. /update and /sync kept as aliases. Install doc seed SQL uses DO UPDATE so re-runs patch existing installs." },
