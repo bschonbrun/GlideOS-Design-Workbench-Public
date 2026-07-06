@@ -1222,9 +1222,9 @@ x-wb-project-id: {installer_project_id}
 x-wb-email:      {installer_email}
 ```
 
-Deliver **every** entry in `manifest.app_files` using the **"Delivering files"** procedure below (client-side chunked fetch + per-file sha256 verify against `manifest-hashes.json`). This includes the large `source-bundle.ts` / `-2` / `-3` / `-4` bundles and `agents-core.md` — they are committed, pinned, and served, so **deliver them for real**.
+Deliver **every** entry in `manifest.app_files` using the **"Delivering files"** procedure below (client-side chunked fetch + per-file sha256 verify against `manifest-hashes.json`). `agents-core.md` and the large `LayoutCanvas.tsx` are committed, pinned, and served like any other file — deliver them for real. (Source is no longer baked into `source-bundle*.ts`; those bundles are gone. The running app self-populates its file cache from the pin on first boot — see the app's own seed flow — so a fresh install does not need to hand-cache source.)
 
-> **Do NOT stub the source-bundles empty**, and **do NOT single-fetch** a large file. `admin.ts` and `workflows.ts` import the bundles at compile time; shipping them empty or truncated leaves the app without its own source (the "backendless install" the v2.6.0 bundle regeneration was meant to fix). Chunk every file > 15000 bytes.
+> **Do NOT single-fetch** a large file. Any file > 15000 bytes must use the chunk loop below — `LayoutCanvas.tsx` is the notable one — because a single fetch-and-`file_write` silently truncates it.
 
 After all app source files are written and verified, mark the workbench_deployed item as in-progress:
 
@@ -1238,7 +1238,7 @@ WHERE org_id = 'default' AND item_key = 'workbench_deployed';
 
 ## Delivering files (client-side chunked assembly + hash verification)
 
-Applies to **every** file you write from the scaffold proxy — all of `manifest.app_files`, and the docs in Step 3. Large source files (`source-bundle*.ts`, `LayoutCanvas.tsx`) are far bigger than one fetch result can carry, so deliver them in **client-side** slices. This procedure moves any file size byte-exact.
+Applies to **every** file you write from the scaffold proxy — all of `manifest.app_files`, and the docs in Step 3. The large `LayoutCanvas.tsx` is far bigger than one fetch result can carry, so deliver it in **client-side** slices. This procedure moves any file size byte-exact.
 
 > **The scaffold proxy returns the WHOLE file.** It does **not** honour any `?offset`/`?length` query — you must slice on the client with `Uint8Array`. (An earlier version of this doc claimed ranged fetches work; they do not.)
 
@@ -1258,7 +1258,7 @@ Applies to **every** file you write from the scaffold proxy — all of `manifest
      3. If `START === 0`: `file_write` the returned `text` to `dest` (creates/overwrites). Else: `file_edit`-append `text` to the end of the file (anchor on the last ~40 characters currently in the file).
      4. `START = end`; repeat until `END === total`.
 
-3. **Verify after every file.** Re-read the whole file, compute sha256, compare to `manifest-hashes.files[path]`. **`file_read` caps at ~200KB**, so for any file larger than that (the `source-bundle*.ts` and `LayoutCanvas.tsx`), read it in successive line-range chunks (lines 1–2000, 2001–4000, …) until a read returns fewer lines than requested, concatenate the chunks in order, then sha256 the concatenation (the same read-in-chunks method `/cache-files` uses).
+3. **Verify after every file.** Re-read the whole file, compute sha256, compare to `manifest-hashes.files[path]`. **`file_read` caps at ~200KB**, so for any file larger than that (`LayoutCanvas.tsx`), read it in successive line-range chunks (lines 1–2000, 2001–4000, …) until a read returns fewer lines than requested, concatenate the chunks in order, then sha256 the concatenation (the same read-in-chunks method `/cache-files` uses).
    - **Match:** next file.
    - **Mismatch (1st):** re-deliver the whole file from `START = 0`. The `file_write` overwrites, discarding any corrupt/mis-anchored tail — do **not** append onto the bad file.
    - **Mismatch (2nd, same file):** STOP. Report the path + both hashes (expected from `manifest-hashes.json`, actual) verbatim. Do not proceed past a file that failed twice.
