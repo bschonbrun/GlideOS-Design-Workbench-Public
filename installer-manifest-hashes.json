@@ -1,0 +1,16 @@
+{
+  "version": "2.8.2",
+  "commit": "3c7e1b21e0cc1580240f094e28b99f4fd1fb027f",
+  "files": {
+    "apps/design-workbench-installer/client/App.tsx": "7bffa81e55fc8fe50c0574617125ce8068e8fab13bf24f5a00cf79c00e95b2d8",
+    "apps/design-workbench-installer/client/components/Button.tsx": "64b10583481f63db77ac734aed1131ca343dd6f46f43cb98b76bb9cd910403b4",
+    "apps/design-workbench-installer/client/components/Dialog.tsx": "4d8e01edc3ae5cd1654afc9e0aaf59cb4c1137ff298acbae13618eedb46b0e95",
+    "apps/design-workbench-installer/client/components/Input.tsx": "8f8ec9f8b52ceea53a922cfaafe3e7bc96f6e636faa3b1001128465a7e081a92",
+    "apps/design-workbench-installer/client/components/Label.tsx": "60e7cdaba527bfcb8c5589887a2f4d23d452d0b0e97a1fad768fb5c8b8461ff1",
+    "apps/design-workbench-installer/client/components/Tabs.tsx": "04bc153631c726d76f2270b566bbb1088fb8b338470ac897d0c0062f020ae9cd",
+    "apps/design-workbench-installer/client/components/Toast.tsx": "4c3b6ecc7d0db96c7ff61ae33a3faacf914f931d5550afc01dc8089a357381ec",
+    "apps/design-workbench-installer/client/pages/AdminPanel.tsx": "d3eea4357858878bcf0aab8c2768e090026582df2bc7962227bd6d0b12f674f3",
+    "apps/design-workbench-installer/client/pages/Home.tsx": "eafac30e12406fbb2b93eebd0da71b6f53d4f9af3db6868bed716e662485d651",
+    "apps/design-workbench-installer/server.ts": "eb8ce0493525e83c37676664cd9e8dfe8f0d175f1a0da0116c9cc72d3d3a4504"
+  }
+}
