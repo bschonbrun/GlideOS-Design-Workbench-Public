@@ -1,8 +1,8 @@
 {
-  "version": "2.8.2",
-  "commit": "6ec4fb66ae866113e5299b1a06918f0d5099c566",
+  "version": "2.8.3",
+  "commit": "6f8b8fd68391c040140fa1452c898e18ca6ccee9",
   "prod_url": "https://p8056f420-design-workbench--bill.glideos.app",
-  "publish_hash": "40377c21",
+  "publish_hash": null,
   "files": {
     "agents-core.md": "5d9c156fa72c85dee1a8f4bc6b07d3074749815dd0e9ec98ab4fe0a0c9a1d7a7",
     "apps/design-workbench/auth.d.ts": "9cc5414b88c29f2da03f6ab69974d2468827e6e025628c215faa38ec3f5a3980",
@@ -23,12 +23,7 @@
     "apps/design-workbench/client/pages/WorkflowEdgeTypes.tsx": "e1205f52f66796661125bdaef3a4542aa7a58054ae0f87e01ad43d262483fe48",
     "apps/design-workbench/client/pages/WorkflowNewModal.tsx": "2b5de82a8547cc9435a696255d258a617662fb92582c1bf42c0197a7e960670a",
     "apps/design-workbench/client/pages/WorkflowNodeTypes.tsx": "a144ed04ef759b0c6fb4d3a3f89cb8fb6d3ed275944b585b3448f43daccc7e77",
-    "apps/design-workbench/preview/App.tsx": "997efe32858b250501f43242e98bf8590eb315d0148d7054590dc0042ddeabec",
     "apps/design-workbench/preview/components/Nav.tsx": "839677232f93e730825fed5b17f8092f646af59abe9cf3d969f706e6bfe48550",
-    "apps/design-workbench/preview/pages/Dashboard.tsx": "2859726a94facfbe4df6f3c210a7d10d3036e362b7862bf47fc6100b7fa8f076",
-    "apps/design-workbench/preview/pages/EquipmentDetail.tsx": "ae74f8e457086dcf1629e0bc6f19df062b5e43090a976fde38e84b765d9252ea",
-    "apps/design-workbench/preview/pages/EquipmentList.tsx": "74557ec7f7329e914985fe4bcf5f40db0849408c044a5637a2ac810e1eea4a73",
-    "apps/design-workbench/preview/pages/EquipmentNew.tsx": "a9d1148037b21fded3e30bae01f81064ed3ea45d1a0b76d5bda67530a281e951",
     "apps/design-workbench/preview/proxy.ts": "79d015b93659a5b81d206cfb49849c6e5426970bbece5df3e94e14bb4b3db33f",
     "apps/design-workbench/routes/_shared.ts": "f9cfc5325e3224bbb3afe0b0915bc2795fb4a315ba5dbf07a9125b16dc30e9fd",
     "apps/design-workbench/routes/admin.ts": "22e694c751fa6e76a0630d63e3ed974e92bd8da952ecbf02296320dcdd6c848b",
@@ -41,7 +36,7 @@
     "apps/design-workbench/routes/org.ts": "e7ee7332cc676764091ca3f7e46b425674cab6e65eba13a0266d8b3a060224dd",
     "apps/design-workbench/routes/workbench.ts": "188ea7bd99d2bda4d33fecaebd8bf63cc4ed944439570746da88b35be3101c06",
     "apps/design-workbench/routes/workflows.ts": "b05d89c094f443f2b8f12dd62b822113149acb0220b994d245a98fe661721a20",
-    "apps/design-workbench/server.ts": "ade4f2bac372fc650a1551adc94cfdd9d67e3d8a153d05785b08183661c69ad5",
+    "apps/design-workbench/server.ts": "3895c0366e6f30961333c8c0c04e893bea9617295f77ffa5ec7475ca356b4f09",
     "package.json": "f287c56dc3be99d7edce2a330af30f8f054dc7d5d5af34b6599548c7fac17568",
     "scaffold/Toast.tsx": "4c3b6ecc7d0db96c7ff61ae33a3faacf914f931d5550afc01dc8089a357381ec"
   }
