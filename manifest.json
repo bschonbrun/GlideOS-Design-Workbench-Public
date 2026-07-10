@@ -4,7 +4,7 @@
   "updated_at": "2026-07-09",
   "description": "CarboNet Design Workbench — scaffold manifest",
   "prod_url": "https://p8056f420-design-workbench--bill.glideos.app",
-  "publish_hash": null,
+  "publish_hash": "017bf873",
   "app_files": [
     {
       "path": "package.json",
@@ -463,7 +463,7 @@
     {
       "version": "2.9.0",
       "date": "2026-07-10",
-      "summary": "v2.9.0 — LayoutCanvas modularization: the 513KB LayoutCanvas.tsx monolith is split into 69 modules ≤15KB under layout-canvas/ (58 mechanical Phase-1 extractions + Phase-2 orchestrator decomposition into domain features, 3 views, canvas-io, and two coarse hooks per the architecture-critic-approved seam — see docs/architect-handoff-layoutcanvas-split.md). Behavior-preserving; verified by adversarial review (2 state-survival fixes applied), tsc gate held at the 10 pre-existing baseline errors throughout. 24KB of confirmed-dead components deleted (SettingsModal, FullModal, ThemesPanelContent, LayersPanelContent, OverridesPanelContent). Every pinned file now fits a single-call delivery; the multi-slice chunk grind is dead. Supersedes the v2.8.3 stamp plan (PR #47 closed unmerged; its recorded publish_hash 42901362 was already stale). publish_hash null pending the first prod deploy of this version (C3 fails closed until recorded — ADR-006)."
+      "summary": "v2.9.0 — LayoutCanvas modularization: the 513KB LayoutCanvas.tsx monolith is split into 69 modules ≤15KB under layout-canvas/ (58 mechanical Phase-1 extractions + Phase-2 orchestrator decomposition into domain features, 3 views, canvas-io, and two coarse hooks per the architecture-critic-approved seam — see docs/architect-handoff-layoutcanvas-split.md). Behavior-preserving; verified by adversarial review (2 state-survival fixes applied), tsc gate held at the 10 pre-existing baseline errors throughout. 24KB of confirmed-dead components deleted (SettingsModal, FullModal, ThemesPanelContent, LayersPanelContent, OverridesPanelContent). Every pinned file now fits a single-call delivery; the multi-slice chunk grind is dead. Supersedes the v2.8.3 stamp plan (PR #47 closed unmerged; its recorded publish_hash 42901362 was already stale). publish_hash 017bf873 (prod deploy 2026-07-10, delivered via the v2.9.0 per-module update loop; pin 79d8995)."
     },
     {
       "version": "2.8.3",

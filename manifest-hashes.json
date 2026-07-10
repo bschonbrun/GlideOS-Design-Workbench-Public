@@ -1,8 +1,8 @@
 {
   "version": "2.9.0",
-  "commit": "79d8995bbb14029352e248ef053172da82e26e97",
+  "commit": "fcabc2bdd7fe4c417625ae1c77d1be7f9914ad00",
   "prod_url": "https://p8056f420-design-workbench--bill.glideos.app",
-  "publish_hash": null,
+  "publish_hash": "017bf873",
   "files": {
     "agents-core.md": "5d9c156fa72c85dee1a8f4bc6b07d3074749815dd0e9ec98ab4fe0a0c9a1d7a7",
     "apps/design-workbench/auth.d.ts": "9cc5414b88c29f2da03f6ab69974d2468827e6e025628c215faa38ec3f5a3980",
